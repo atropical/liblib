@@ -1,15 +1,19 @@
 import {
   ChangeKind,
   ComponentRecord,
+  DeviationRecord,
   DiffEntry,
   DiffReport,
   FieldChange,
   SNAPSHOT_SCHEMA,
   Snapshot,
   StyleRecord,
+  USAGE_SCHEMA,
+  UsageDiffReport,
+  UsageSnapshot,
   VariableRecord,
 } from "../types.d";
-import { byField, stableStringify } from "../utils/stable";
+import { byField, hashValue, stableStringify } from "../utils/stable";
 
 interface Identified {
   key: string;
@@ -48,7 +52,78 @@ export function diffSnapshots(base: Snapshot, head: Snapshot): DiffReport {
   };
 }
 
-function diffCollection<T extends Identified>(baseItems: T[], headItems: T[]): DiffEntry[] {
+/**
+ * Compares two usage snapshots of the same consuming file.
+ *
+ * The one thing this must not do is read a narrower export as a deletion. Two
+ * runs can legitimately cover different frames — the designer selected a
+ * section last time and two screens this time — so anything outside the new
+ * export's scope is reported as `out-of-scope`, which is a statement about
+ * coverage, not about the design.
+ */
+export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffReport {
+  const headScope = new Set(head.meta.scope.frames);
+  const inScope = (frameKey: string) => headScope.size === 0 || headScope.has(frameKey);
+
+  const frames = diffCollection(base.frames, head.frames, inScope);
+  const components = diffCollection(base.components, head.components);
+  const styles = diffCollection(base.styles, head.styles);
+  const variables = diffCollection(base.variables, head.variables);
+  const deviations = diffCollection(
+    deviationEntries(base.deviations),
+    deviationEntries(head.deviations),
+    (key) => inScope(key.split(" ▸ ")[0] ?? key),
+  );
+
+  const all = [...frames, ...components, ...styles, ...variables, ...deviations];
+
+  return {
+    schema: USAGE_SCHEMA,
+    base: { fileName: base.meta.fileName, generatedAt: base.meta.generatedAt },
+    head: { fileName: head.meta.fileName, generatedAt: head.meta.generatedAt },
+    summary: {
+      added: all.filter((entry) => entry.kind === "added").length,
+      removed: all.filter((entry) => entry.kind === "removed").length,
+      renamed: all.filter((entry) => entry.kind === "renamed").length,
+      modified: all.filter((entry) => entry.kind === "modified").length,
+      outOfScope: all.filter((entry) => entry.kind === "out-of-scope").length,
+      framesChanged: frames.length,
+      componentsChanged: components.length,
+      stylesChanged: styles.length,
+      variablesChanged: variables.length,
+      deviationsChanged: deviations.length,
+    },
+    frames,
+    components,
+    styles,
+    variables,
+    deviations,
+  };
+}
+
+/**
+ * Deviations have no identity of their own — they are findings, not records —
+ * so one is keyed by where it was found and what it was. A moved layer reads as
+ * one gone and one appeared, which is the honest reading of a finding.
+ */
+function deviationEntries(deviations: DeviationRecord[]): Identified[] {
+  return deviations.map((deviation) => ({
+    key: `${deviation.frame} ▸ ${deviation.path} / ${deviation.name} ▸ ${deviation.kind}`,
+    name: `${deviation.kind}: ${deviation.name}${deviation.intentional ? " (intentional)" : ""}`,
+    hash: hashValue({
+      kind: deviation.kind,
+      detail: deviation.detail,
+      intentional: deviation.intentional,
+    }),
+  }));
+}
+
+function diffCollection<T extends Identified>(
+  baseItems: T[],
+  headItems: T[],
+  /** Whether a key the head no longer has was even in the head's scope. */
+  inScope: (key: string) => boolean = () => true,
+): DiffEntry[] {
   const baseByKey = indexBy(baseItems);
   const headByKey = indexBy(headItems);
   const entries: DiffEntry[] = [];
@@ -77,9 +152,13 @@ function diffCollection<T extends Identified>(baseItems: T[], headItems: T[]): D
   }
 
   for (const [key, baseItem] of baseByKey) {
-    if (!headByKey.has(key)) {
-      entries.push({ kind: "removed", key, name: baseItem.name, changes: [] });
-    }
+    if (headByKey.has(key)) continue;
+    entries.push({
+      kind: inScope(key) ? "removed" : "out-of-scope",
+      key,
+      name: baseItem.name,
+      changes: [],
+    });
   }
 
   return entries.sort(byField((entry) => `${entry.kind}:${entry.name}`));
@@ -95,7 +174,13 @@ function indexBy<T extends Identified>(items: T[]): Map<string, T> {
   return map;
 }
 
-const IGNORED_FIELDS = new Set(["hash", "path"]);
+/**
+ * `frames` and `instanceCount` on a usage record say where a component is used
+ * and how often — that moves whenever a screen is edited, and it is already
+ * reported by the frame's own entry. Neither is excluded from the record, only
+ * from the change list.
+ */
+const IGNORED_FIELDS = new Set(["hash", "path", "frames", "instanceCount"]);
 const RENAME_PATHS = new Set(["name", "structure.name"]);
 
 /**

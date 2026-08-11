@@ -1,5 +1,5 @@
 import { ProbeResult } from "../types.d";
-import { encodeSnapshot, FORMATS, OutputFormats } from "./encode";
+import { encodeAny, FORMATS, OutputFormats } from "./encode";
 import { estimateTokens } from "../utils/tokens";
 
 export interface FormatEstimate {
@@ -34,12 +34,12 @@ export function estimateScan(probe: ProbeResult): ScanEstimate {
 
   const perFormat = {} as Record<OutputFormats, FormatEstimate>;
   for (const descriptor of FORMATS) {
-    const baseText = encodeSnapshot(probe.base, descriptor.format);
+    const baseText = encodeAny(probe.base, descriptor.format);
     const baseTokens = estimateTokens(baseText);
     const baseBytes = baseText.length;
 
     const measured = groups.map((group) => {
-      const text = encodeSnapshot(group.snapshot, descriptor.format);
+      const text = encodeAny(group.snapshot, descriptor.format);
       return {
         components: group.componentCount,
         nodes: group.nodes,

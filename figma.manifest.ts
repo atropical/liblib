@@ -9,9 +9,14 @@ export default {
   // even with "dev" in editorType.
   "capabilities": ["inspect"],
   "documentAccess": "dynamic-page",
+  // Named by which file each belongs in: "Library" runs where the components
+  // live, "Usage" runs in a design file that consumes them.
   "menu": [
-    { "command": "snapshot", "name": "Export Snapshot…" },
-    { "command": "diff", "name": "Diff Against Snapshot…" }
+    { "command": "snapshot", "name": "Export Library Snapshot…" },
+    { "command": "diff", "name": "Diff Against Library Snapshot…" },
+    { "separator": true },
+    { "command": "usage", "name": "Export Usage Snapshot…" },
+    { "command": "usage-diff", "name": "Diff Against Usage Snapshot…" }
   ],
   "networkAccess": {
     "allowedDomains": ["none"],

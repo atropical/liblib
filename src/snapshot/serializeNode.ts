@@ -1,6 +1,6 @@
 /// <reference types="@figma/plugin-typings" />
 
-import { SerializedNode } from "../types.d";
+import { InstanceContent, SerializedNode } from "../types.d";
 import { hashValue, round, styleKeyFromId } from "../utils/stable";
 
 export interface SerializeContext {
@@ -10,6 +10,18 @@ export interface SerializeContext {
   includeSizes: boolean;
   /** Variable id -> "Collection/Variable Name", resolved lazily and cached. */
   variableNames: Map<string, string>;
+  /**
+   * Write `nodeId` on every node. Off for a library snapshot: a component is
+   * addressed by its publish key, and per-node ids would only add churn.
+   */
+  includeNodeIds: boolean;
+  /** How much of an instance's subtree to walk. `full` matches a library scan. */
+  instanceContent: InstanceContent;
+  /**
+   * Style ids met while serializing. A consuming file has no local styles to
+   * enumerate, so the styles it uses can only be discovered this way.
+   */
+  styleIds: Set<string>;
 }
 
 export function createContext(overrides: Partial<SerializeContext> = {}): SerializeContext {
@@ -17,6 +29,9 @@ export function createContext(overrides: Partial<SerializeContext> = {}): Serial
     depth: 6,
     includeSizes: false,
     variableNames: new Map(),
+    includeNodeIds: false,
+    instanceContent: "full",
+    styleIds: new Set(),
     ...overrides,
   };
 }
@@ -25,6 +40,8 @@ export async function serializeNode(
   node: SceneNode,
   ctx: SerializeContext,
   level = 0,
+  /** Overridden node ids of the enclosing instance, in `overrides` mode. */
+  overriddenIds?: Set<string>,
 ): Promise<SerializedNode> {
   const serialized: SerializedNode = {
     type: node.type,
@@ -32,23 +49,74 @@ export async function serializeNode(
     props: await collectProps(node, ctx),
   };
 
+  if (ctx.includeNodeIds) serialized.nodeId = node.id;
   if (node.visible === false) serialized.hidden = true;
 
   if ("children" in node && node.children.length > 0) {
+    const atInstanceBoundary = node.type === "INSTANCE" && ctx.instanceContent !== "full";
+
     if (level >= ctx.depth) {
       // Record that something was cut rather than silently reporting a leaf —
       // otherwise a deep change would look like "no change" in the diff.
       serialized.truncated = true;
       serialized.props.childCount = node.children.length;
+    } else if (atInstanceBoundary && ctx.instanceContent === "boundary") {
+      // The subtree is the library's, and the library snapshot already has it.
+      // What configures it — key, property values, overridden fields — is in
+      // `props`, so nothing about this instance is lost by stopping here.
+      serialized.omittedChildren = node.children.length;
     } else {
+      // Entering an instance restarts the filter from that instance's own
+      // overrides; a branch below it is only interesting for what it changes.
+      const filter = atInstanceBoundary
+        ? overriddenIdsOf(node as InstanceNode)
+        : overriddenIds;
+
       serialized.children = [];
+      let omitted = 0;
       for (const child of node.children) {
-        serialized.children.push(await serializeNode(child, ctx, level + 1));
+        if (filter && !carriesSignal(child, filter, ctx.depth - level)) {
+          omitted += 1;
+          continue;
+        }
+        serialized.children.push(await serializeNode(child, ctx, level + 1, filter));
       }
+      if (omitted > 0) serialized.omittedChildren = omitted;
+      if (serialized.children.length === 0) delete serialized.children;
     }
   }
 
   return serialized;
+}
+
+/**
+ * Node ids Figma reports as overridden inside this instance. Ids of nested
+ * layers are composed by appending to the ancestor's id, so a prefix test is
+ * enough to ask "does this branch contain an override?".
+ */
+function overriddenIdsOf(instance: InstanceNode): Set<string> {
+  const ids = new Set<string>();
+  for (const override of instance.overrides) ids.add(override.id);
+  return ids;
+}
+
+/**
+ * Whether a branch inside an instance is worth writing out: it either carries
+ * an override, or it holds text. Text is kept unconditionally because the words
+ * on a screen are the part no library snapshot can supply — a button reads
+ * `Save`, not `Label`, and that is what an agent came for.
+ */
+function carriesSignal(node: SceneNode, overriddenIds: Set<string>, remainingDepth: number): boolean {
+  for (const id of overriddenIds) {
+    if (id === node.id || id.startsWith(`${node.id};`)) return true;
+  }
+  return hasText(node, remainingDepth);
+}
+
+function hasText(node: SceneNode, remainingDepth: number): boolean {
+  if (node.type === "TEXT") return true;
+  if (remainingDepth <= 0 || !("children" in node)) return false;
+  return node.children.some((child) => hasText(child, remainingDepth - 1));
 }
 
 async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Record<string, unknown>> {
@@ -121,10 +189,14 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
 
   // --- Style references -----------------------------------------------------
   // Keys, not ids: a style id embeds a local node reference that churns.
-  if ("fillStyleId" in node) put("fillStyle", mixedOr(node.fillStyleId, styleKeyFromId));
-  if ("strokeStyleId" in node) put("strokeStyle", styleKeyFromId(node.strokeStyleId));
-  if ("effectStyleId" in node) put("effectStyle", styleKeyFromId(node.effectStyleId));
-  if ("gridStyleId" in node) put("gridStyle", styleKeyFromId(node.gridStyleId));
+  const styleKey = (id: string): string | undefined => {
+    if (id) ctx.styleIds.add(id);
+    return styleKeyFromId(id);
+  };
+  if ("fillStyleId" in node) put("fillStyle", mixedOr(node.fillStyleId, styleKey));
+  if ("strokeStyleId" in node) put("strokeStyle", styleKey(node.strokeStyleId));
+  if ("effectStyleId" in node) put("effectStyle", styleKey(node.effectStyleId));
+  if ("gridStyleId" in node) put("gridStyle", styleKey(node.gridStyleId));
 
   // --- Variables ------------------------------------------------------------
   if ("boundVariables" in node && node.boundVariables) {
@@ -145,7 +217,7 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
     put("maxLines", nonNull(node.maxLines));
     put("paragraphSpacing", node.paragraphSpacing);
     put("paragraphIndent", node.paragraphIndent);
-    put("textStyle", mixedOr(node.textStyleId, styleKeyFromId));
+    put("textStyle", mixedOr(node.textStyleId, styleKey));
     // Styled segments capture per-range typography, which is the only way to
     // express a text node whose scalar props read as `figma.mixed`.
     put("segments", node.getStyledTextSegments([
@@ -170,8 +242,8 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
       letterSpacing: segment.letterSpacing,
       textCase: segment.textCase,
       textDecoration: segment.textDecoration,
-      textStyle: styleKeyFromId(segment.textStyleId),
-      fillStyle: styleKeyFromId(segment.fillStyleId),
+      textStyle: styleKey(segment.textStyleId),
+      fillStyle: styleKey(segment.fillStyleId),
       listOptions: segment.listOptions,
       indentation: segment.indentation,
       hyperlink: segment.hyperlink,

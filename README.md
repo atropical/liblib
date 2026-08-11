@@ -11,21 +11,45 @@ way developers already solve it: it exports a deterministic snapshot file you co
 
 ## What it does
 
-**Export Snapshot…** scans the current file and writes every component, component set, variant, style
-and variable, with a content hash per record. Deterministic: same design in, byte-identical file out.
+Two pairs of commands, one per kind of file.
 
-**Diff Against Snapshot…** loads a previous snapshot, rescans the file, and writes a report of what
-was added, removed, renamed or modified — down to the field path
+### In the library file
+
+**Export Library Snapshot…** scans the current file and writes every component, component set,
+variant, style and variable, with a content hash per record. Deterministic: same design in,
+byte-identical file out.
+
+**Diff Against Library Snapshot…** loads a previous snapshot, rescans the file, and writes a report of
+what was added, removed, renamed or modified — down to the field path
 (`structure.children[0].props.padding`, `properties.Size.variantOptions`, `valuesByMode.Dark`).
 
-Both views show a live preview of the output and let you pick the format, with an estimated token
+### In a file that *uses* the library
+
+A consuming file has no local components to scan — the library's components are not nodes in it, only
+instances pointing at them — so a library snapshot run there comes out empty. These two read the other
+direction.
+
+**Export Usage Snapshot…** writes the frames you select, each as a tree, with the component key **and
+variant behind every instance** (`Layout=Overlay, Size=Small, Intent=Main`), the variables and styles
+they bind, and a node id on every node so a nested instance layer can be addressed directly. Frames,
+not screens: a print sheet and a spec board are the same thing here.
+
+**Diff Against Usage Snapshot…** compares two usage exports. Frames the newer export did not cover are
+reported as *not covered*, never as deleted — so exporting a section one day and two frames the next
+still produces an honest diff.
+
+Both also flag where the design leaves the system: local components, missing main components, and
+values typed in where a token exists. Layers named with a leading `*` or `[custom]` — or carrying the
+plugin data `intentional=true` — come through marked deliberate rather than being reported as slips.
+
+All four views show a live preview of the output and let you pick the format, with an estimated token
 range on each so you can see what you are about to spend:
 
 | Format | Use | Typical cost |
 | --- | --- | --- |
-| **TOON** | [toonformat.dev](https://toonformat.dev) — same data model as JSON, indentation instead of braces, tabular arrays. Losslessly convertible back to JSON. | **≈39% fewer tokens than JSON** |
+| **TOON** | Default. [toonformat.dev](https://toonformat.dev) — same data model as JSON, indentation instead of braces, tabular arrays. Losslessly convertible back to JSON. | **≈39% fewer tokens than JSON** |
 | **JSON** | Universal, pretty-printed so `git diff` stays line-oriented. | baseline |
-| **Markdown** | Default. Prose report for an agent that greps rather than parses. Lossy — a rendering, not a source. | ≈78% fewer, but not machine-readable back |
+| **Markdown** | Prose report for an agent that greps rather than parses. Lossy — a rendering, not a source. | ≈78% fewer, but not machine-readable back |
 
 Measured on a representative 12-set library: JSON ≈21.0k tokens, TOON ≈12.8k, Markdown ≈4.7k.
 
@@ -43,12 +67,17 @@ design-system/
   .figma/library.snapshot.toon   # ← plugin output, committed
 ```
 
-1. Designer publishes the library, runs **Export Snapshot…**, replaces the committed file.
+1. Designer publishes the library, runs **Export Library Snapshot…**, replaces the committed file.
 2. The commit diff *is* the design system changelog.
 3. The agent reads `git diff .figma/` (or the Markdown report) and knows exactly which components to
    re-implement.
 
-For a one-off check without committing anything, use **Diff Against Snapshot…** instead.
+For a one-off check without committing anything, use **Diff Against Library Snapshot…** instead.
+
+A design file that consumes the library commits its own file alongside — `.figma/usage.snapshot.toon`,
+from **Export Usage Snapshot…**. The two join on the component publish key: the usage file says *which*
+component and *which* variant a frame uses, the library file says what that component is. Neither
+repeats the other.
 
 ## What gets captured
 
@@ -106,7 +135,32 @@ Simulated against synthetic libraries of varying shape, the fitted estimate land
 worsening to ~7% (TOON) on a pathological mix — 7 large component sets among 1,537 icons. The earlier
 component-count model was out by **266%** on the same file.
 
+### A usage snapshot
+
+| Section | Notes |
+| --- | --- |
+| `frames` | One record per exported frame. Keyed by `Page / Section / Frame` — its document path, not the selection, so selecting a section and selecting the frames inside it produce the same keys. `nodeId` on every node in the tree; excluded from hashes, like everywhere else |
+| `components` | One per library component used: publish key, set key and name, whether it is remote, the published property definitions, every variant combination it is used in (`usedAs`), instance count, and which frames it appears in |
+| `styles`, `variables` | Only the ones these frames actually reference — a consuming file has no local ones to list. Variable alias chains are followed to the end, so a screen bound to `Surface/Card` also carries what `Surface/Card` resolves to |
+| `deviations` | Local components, missing main components, and fills, strokes, radii and spacing set by hand where nothing is bound. Each carries `intentional`, set from the layer name marker or plugin data |
+| `meta.scope` | The mode and the exact frame list this export covered, which is what lets the diff tell "removed" from "not covered" |
+
 ## Options
+
+### Usage scan
+
+- **Frames to export** — selected frames (default), this page, or the whole file. A selected section
+  is looked through to the frames inside it, and a node whose ancestor is also selected is dropped, so
+  clicking imprecisely and clicking exactly produce the same export.
+- **Inside instances** — `Stop at instances` records only what configures each instance;
+  `Overrides and text` (default) additionally keeps the branches carrying an override or text, which is
+  where a screen's own content lives; `Everything` walks it all, at library-snapshot cost. The default
+  exists because the library snapshot already holds every instance's insides — writing them again per
+  screen costs tokens and adds nothing.
+- **Flag anything off-system** — on by default.
+- **Structure depth** (default 12) — screens nest deeper than components do.
+
+### Library scan
 
 - **Structure depth** (default 6) — how deep into each component's tree to serialize. Truncated
   branches are marked `truncated: true` rather than silently reported as leaves. The estimate panel
@@ -181,7 +235,8 @@ src/
   code.ts                    plugin thread: run command, build snapshot, post back
   ui.tsx                     UI thread: routes on the invoked menu command
   snapshot/
-    buildSnapshot.ts         walks the document, collects components/styles/variables
+    buildSnapshot.ts         library scan: walks the document, collects components/styles/variables
+    buildUsage.ts            usage scan: resolves the selection to frames, follows instances to the library
     serializeNode.ts         one node -> deterministic property bag
     diff.ts                  key-matched record diff with field paths
     markdown.ts              agent-facing report rendering

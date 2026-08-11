@@ -36,7 +36,16 @@ export function normalize(value: unknown): unknown {
  * Ordering is applied at encode time, never in `normalize`, so hashes are taken
  * over the data and can never move because of how it is laid out.
  */
-const NODE_KEY_ORDER = ["name", "type", "hidden", "truncated", "props", "children"];
+const NODE_KEY_ORDER = [
+  "name",
+  "type",
+  "nodeId",
+  "hidden",
+  "truncated",
+  "omittedChildren",
+  "props",
+  "children",
+];
 
 function isSerializedNode(value: Record<string, unknown>): boolean {
   return (
