@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Checkbox, Flex, Input, Text } from "figma-kit";
+import { Checkbox, Flex, Input, RadioGroup, Text } from "figma-kit";
 import { InstanceContent, SelectionSummary, UsageOptions, UsageScope } from "../types.d";
 
 interface UsageOptionsPanelProps {
@@ -48,21 +48,21 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
     <Flex direction="column" gap="3">
       <Flex direction="column" gap="1">
         <Text size="small" weight="strong">
-          Frames to export
+          What to export
         </Text>
-        <Flex direction="row" gap="1">
+        <RadioGroup.Root
+          value={options.scope}
+          onValueChange={(scope) => onChange({ ...options, scope: scope as UsageScope })}
+          orientation="vertical"
+          disabled={disabled}
+        >
           {SCOPES.map((scope) => (
-            <Button
-              key={scope.value}
-              variant={scope.value === options.scope ? "primary" : "secondary"}
-              onClick={() => onChange({ ...options, scope: scope.value })}
-              disabled={disabled}
-              style={{ flex: 1 }}
-            >
-              {scope.label}
-            </Button>
+            <RadioGroup.Label key={scope.value}>
+              <RadioGroup.Item value={scope.value} />
+              <Text size="small">{scope.label}</Text>
+            </RadioGroup.Label>
           ))}
-        </Flex>
+        </RadioGroup.Root>
         <ScopeSummary options={options} selection={selection} />
       </Flex>
 
@@ -70,19 +70,19 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
         <Text size="small" weight="strong">
           Inside instances
         </Text>
-        <Flex direction="row" gap="1">
+        <RadioGroup.Root
+          value={options.instanceContent}
+          onValueChange={(value) => onChange({ ...options, instanceContent: value as InstanceContent })}
+          orientation="vertical"
+          disabled={disabled}
+        >
           {INSTANCE_CONTENT.map((entry) => (
-            <Button
-              key={entry.value}
-              variant={entry.value === options.instanceContent ? "primary" : "secondary"}
-              onClick={() => onChange({ ...options, instanceContent: entry.value })}
-              disabled={disabled}
-              style={{ flex: 1 }}
-            >
-              {entry.label}
-            </Button>
+            <RadioGroup.Label key={entry.value}>
+              <RadioGroup.Item value={entry.value} />
+              <Text size="small">{entry.label}</Text>
+            </RadioGroup.Label>
           ))}
-        </Flex>
+        </RadioGroup.Root>
         <Text size="small" style={{ opacity: 0.6 }}>
           {instanceContent.hint}
         </Text>
