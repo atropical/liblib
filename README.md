@@ -151,6 +151,7 @@ component-count model was out by **266%** on the same file.
 | `deviations` | Local components, missing main components, and fills, strokes, radii and spacing set by hand where nothing is bound. Each carries `intentional`, set from the layer name marker or plugin data |
 | `props.offset` | `[x, y]` relative to the parent, on every node but the frame root. Most spacing in a design is a gap between siblings, and a gap is only recoverable from where they sit |
 | `props.bindingMismatch` | Where a node claims a token and renders another number — a detached override, a stale binding, or a token that moved. Both values are recorded, because the name alone cannot say which |
+| `props.overrides` | What each override was set to — the text a label now reads, the component swapped into a slot — beside the `overriddenFields` list of which fields changed |
 | `props.vectorShapes` | A count of outline shapes replaced by it. Counted rather than dropped, so "there is artwork here" survives |
 | `meta.scope` | The mode and the exact frame list this export covered, which is what lets the diff tell "removed" from "not covered" |
 
@@ -166,6 +167,8 @@ component-count model was out by **266%** on the same file.
   where a screen's own content lives; `Everything` walks it all, at library-snapshot cost. The default
   exists because the library snapshot already holds every instance's insides — writing them again per
   screen costs tokens and adds nothing.
+- **Record what overrides were set to** — on by default. Without it the export says a layer was
+  overridden but not to what, which is a trip into Figma per instance.
 - **Include each layer's position** — on by default, relative to the parent.
 - **Summarise artwork outlines** — on by default. Vector shapes become a count on the layer holding
   them; turn it off when the artwork is the subject of the export.

@@ -41,6 +41,7 @@ export const DEFAULT_USAGE_OPTIONS: UsageOptions = {
   // recoverable from where those layers sit.
   includePositions: true,
   summariseVectors: true,
+  resolveOverrides: true,
   flagDeviations: true,
 };
 
@@ -53,6 +54,7 @@ function usageContext(options: UsageOptions): SerializeContext {
     instanceContent: options.instanceContent,
     includePositions: options.includePositions,
     summariseVectors: options.summariseVectors,
+    resolveOverrides: options.resolveOverrides,
     // A mismatch is only checkable when variables are being resolved anyway.
     checkBindings: options.includeVariables,
   });

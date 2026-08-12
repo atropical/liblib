@@ -93,6 +93,11 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
         leading <code>*</code> or <code>[custom]</code> are reported as deliberate.
       </Option>
 
+      <Option checked={options.resolveOverrides} onChange={toggle("resolveOverrides")} disabled={disabled} label="Record what overrides were set to">
+        The text a label was changed to, the component swapped into a slot. Without it the export says
+        a layer was overridden but not to what. Costs a lookup per overridden layer.
+      </Option>
+
       <Option checked={options.includePositions} onChange={toggle("includePositions")} disabled={disabled} label="Include each layer's position">
         Relative to its parent. Most spacing in a design is the gap between two layers, and a gap can
         only be worked out from where they sit.

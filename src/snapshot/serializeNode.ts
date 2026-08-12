@@ -26,6 +26,11 @@ export interface SerializeContext {
   /** Replace outline shapes with a count on the parent. */
   summariseVectors: boolean;
   /**
+   * Record what each override was set to, not only which fields were
+   * overridden. Costs a node lookup per overridden layer.
+   */
+  resolveOverrides: boolean;
+  /**
    * Compare a bound variable against the value actually rendered, and record
    * where they differ. Needs variable lookups, so it is opt-in.
    */
@@ -49,6 +54,7 @@ export function createContext(overrides: Partial<SerializeContext> = {}): Serial
     styleIds: new Set(),
     includePositions: false,
     summariseVectors: false,
+    resolveOverrides: false,
     checkBindings: false,
     variableValues: new Map(),
     ...overrides,
@@ -133,6 +139,95 @@ function overriddenIdsOf(instance: InstanceNode): Set<string> {
   const ids = new Set<string>();
   for (const override of instance.overrides) ids.add(override.id);
   return ids;
+}
+
+/**
+ * Overridden fields whose value is worth recording, and how to read it.
+ *
+ * Everything else Figma can report as overridden is either already elsewhere in
+ * the record or an object too large to be worth the room — the test is whether
+ * a reader could act on the value without opening the file.
+ */
+const RESOLVED_OVERRIDES = new Set([
+  "characters",
+  "mainComponent",
+  "componentProperties",
+  "visible",
+  "fills",
+  "strokes",
+  "cornerRadius",
+  "itemSpacing",
+  "opacity",
+]);
+
+/** Long copy is quoted, not stored: the point is to identify it, not hold it. */
+const MAX_OVERRIDE_TEXT = 200;
+/** An instance overridden past this is being rebuilt, not configured. */
+const MAX_OVERRIDES = 100;
+
+/**
+ * What each override was actually set to.
+ *
+ * `overriddenFields` names the fields but not the values, which leaves the one
+ * question a reader has — what does this button *say*, which icon was swapped
+ * in — answerable only by opening Figma. Reading it costs a node lookup per
+ * overridden layer, which is why it is optional.
+ */
+async function overrideValues(instance: InstanceNode, ctx: SerializeContext): Promise<unknown[]> {
+  const out: unknown[] = [];
+
+  for (const override of instance.overrides.slice(0, MAX_OVERRIDES)) {
+    // The instance's own overrides are its property values, which are already
+    // recorded in full as `componentProperties`.
+    if (override.id === instance.id) continue;
+
+    const fields = override.overriddenFields.filter((field) => RESOLVED_OVERRIDES.has(field));
+    if (fields.length === 0) continue;
+
+    const node = await figma.getNodeByIdAsync(override.id).catch(() => null);
+    if (!node || !("type" in node)) continue;
+
+    for (const field of [...fields].sort()) {
+      const value = await overrideValue(node as SceneNode, field);
+      if (value === undefined) continue;
+      out.push({ layer: node.name, nodeId: node.id, field, value });
+    }
+  }
+
+  return out;
+}
+
+async function overrideValue(node: SceneNode, field: string): Promise<unknown> {
+  switch (field) {
+    case "characters":
+      if (node.type !== "TEXT") return undefined;
+      return node.characters.length > MAX_OVERRIDE_TEXT
+        ? `${node.characters.slice(0, MAX_OVERRIDE_TEXT)}…`
+        : node.characters;
+    case "mainComponent": {
+      if (node.type !== "INSTANCE") return undefined;
+      const main = await node.getMainComponentAsync();
+      // The swap is the whole point here: which component is in the slot now.
+      return main ? { key: main.key, name: main.name } : { missing: true };
+    }
+    case "componentProperties":
+      if (node.type !== "INSTANCE") return undefined;
+      return serializeComponentProperties(node.componentProperties);
+    case "visible":
+      return node.visible;
+    case "opacity":
+      return "opacity" in node ? round(node.opacity, 3) : undefined;
+    case "cornerRadius":
+      return "cornerRadius" in node ? mixedOr(node.cornerRadius, (v) => round(v)) : undefined;
+    case "itemSpacing":
+      return "itemSpacing" in node ? mixedOr(node.itemSpacing, (v) => round(v)) : undefined;
+    case "fills":
+      return "fills" in node ? mixedOr(node.fills, (v) => v.map(serializePaint)) : undefined;
+    case "strokes":
+      return "strokes" in node ? node.strokes.map(serializePaint) : undefined;
+    default:
+      return undefined;
+  }
 }
 
 /** Outline shapes: the insides of artwork, not layers anyone reasons about. */
@@ -311,6 +406,10 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
       }
       put("overriddenFields", Array.from(fields).sort());
       put("overrideCount", node.overrides.length);
+      if (ctx.resolveOverrides) {
+        const values = await overrideValues(node, ctx);
+        if (values.length > 0) put("overrides", values);
+      }
     }
     put("exposedInstanceCount", node.exposedInstances.length || undefined);
   }

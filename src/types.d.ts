@@ -101,8 +101,9 @@ export interface SerializedNode {
   /** Set when traversal hit the configured depth limit. */
   truncated?: boolean;
   /**
-   * Children left out because they carry no override and no text — set only in
-   * `overrides` instance mode, so a pruned subtree never reads as an empty one.
+   * Children left out because they carry nothing only they could say — no
+   * override, no text, no library component. Set only in `overrides` instance
+   * mode, so a pruned subtree never reads as an empty one.
    */
   omittedChildren?: number;
 }
@@ -391,6 +392,13 @@ export interface UsageOptions {
    * the subject.
    */
   summariseVectors: boolean;
+  /**
+   * Record what each override was set to — the text a label was changed to, the
+   * component swapped into a slot — rather than only which fields changed.
+   * Costs one node lookup per overridden layer, so it can be turned off on a
+   * file with heavily overridden instances.
+   */
+  resolveOverrides: boolean;
   /** Report where the design steps outside the library. */
   flagDeviations: boolean;
 }

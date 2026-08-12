@@ -238,6 +238,11 @@ function outlineNode(node: SerializedNode, lines: string[], indent: number): voi
     parts.push(`⚠ ${mismatch.field}=${mismatch.actual} but ${mismatch.token}=${mismatch.expected}`);
   }
 
+  const overrides = node.props.overrides as { layer: string; field: string; value: unknown }[] | undefined;
+  for (const override of overrides ?? []) {
+    parts.push(`${override.layer}.${override.field}=${formatValue(override.value)}`);
+  }
+
   if (node.props.vectorShapes) parts.push(`${node.props.vectorShapes} vector shape(s)`);
   if (typeof node.props.characters === "string") parts.push(`text: ${JSON.stringify(node.props.characters)}`);
   if (node.nodeId) parts.push(`#${node.nodeId}`);
