@@ -94,8 +94,8 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
       </Option>
 
       <Option checked={options.resolveOverrides} onChange={toggle("resolveOverrides")} disabled={disabled} label="Record what overrides were set to">
-        The text a label was changed to, the component swapped into a slot. Without it the export says
-        a layer was overridden but not to what. Costs a lookup per overridden layer.
+        Without this, the export says a layer was overridden but not to what — you get the field name,
+        not the new label text or the icon that was swapped in. Costs a lookup per overridden layer.
       </Option>
 
       <Option checked={options.includePositions} onChange={toggle("includePositions")} disabled={disabled} label="Include each layer's position">
