@@ -1,5 +1,5 @@
 import React from "react";
-import { Checkbox, Flex, Input, RadioGroup, Text } from "figma-kit";
+import { Checkbox, Flex, Input, SegmentedControl, Text } from "figma-kit";
 import { InstanceContent, SelectionSummary, UsageOptions, UsageScope } from "../types.d";
 
 interface UsageOptionsPanelProps {
@@ -9,22 +9,24 @@ interface UsageOptionsPanelProps {
   disabled?: boolean;
 }
 
+// Segment labels stay to a word or two — the panel is narrow, and the sentence
+// that explains each choice sits under the control rather than inside it.
 const SCOPES: { value: UsageScope; label: string }[] = [
-  { value: "selection", label: "Selected frames" },
-  { value: "page", label: "This page" },
+  { value: "selection", label: "Selection" },
+  { value: "page", label: "Current page" },
   { value: "file", label: "Whole file" },
 ];
 
 const INSTANCE_CONTENT: { value: InstanceContent; label: string; hint: string }[] = [
   {
     value: "boundary",
-    label: "Stop at instances",
-    hint: "Records what configures each instance and nothing below it. Smallest by far.",
+    label: "Boundary",
+    hint: "Stops at each instance, recording what configures it and nothing below. Smallest by far.",
   },
   {
     value: "overrides",
-    label: "Overrides and text",
-    hint: "Keeps the branches that carry an override or text — the screen's own content, without the library's insides.",
+    label: "Overrides",
+    hint: "Also keeps the branches that carry an override or text — the design's own content, without the library's insides.",
   },
   {
     value: "full",
@@ -50,19 +52,18 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
         <Text size="small" weight="strong">
           What to export
         </Text>
-        <RadioGroup.Root
+        <SegmentedControl.Root
           value={options.scope}
-          onValueChange={(scope) => onChange({ ...options, scope: scope as UsageScope })}
-          orientation="vertical"
+          onValueChange={(scope) => scope && onChange({ ...options, scope: scope as UsageScope })}
+          fullWidth
           disabled={disabled}
         >
           {SCOPES.map((scope) => (
-            <RadioGroup.Label key={scope.value}>
-              <RadioGroup.Item value={scope.value} />
-              <Text size="small">{scope.label}</Text>
-            </RadioGroup.Label>
+            <SegmentedControl.Item key={scope.value} value={scope.value}>
+              <SegmentedControl.Text>{scope.label}</SegmentedControl.Text>
+            </SegmentedControl.Item>
           ))}
-        </RadioGroup.Root>
+        </SegmentedControl.Root>
         <ScopeSummary options={options} selection={selection} />
       </Flex>
 
@@ -70,19 +71,18 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
         <Text size="small" weight="strong">
           Inside instances
         </Text>
-        <RadioGroup.Root
+        <SegmentedControl.Root
           value={options.instanceContent}
-          onValueChange={(value) => onChange({ ...options, instanceContent: value as InstanceContent })}
-          orientation="vertical"
+          onValueChange={(value) => value && onChange({ ...options, instanceContent: value as InstanceContent })}
+          fullWidth
           disabled={disabled}
         >
           {INSTANCE_CONTENT.map((entry) => (
-            <RadioGroup.Label key={entry.value}>
-              <RadioGroup.Item value={entry.value} />
-              <Text size="small">{entry.label}</Text>
-            </RadioGroup.Label>
+            <SegmentedControl.Item key={entry.value} value={entry.value}>
+              <SegmentedControl.Text>{entry.label}</SegmentedControl.Text>
+            </SegmentedControl.Item>
           ))}
-        </RadioGroup.Root>
+        </SegmentedControl.Root>
         <Text size="small" style={{ opacity: 0.6 }}>
           {instanceContent.hint}
         </Text>
