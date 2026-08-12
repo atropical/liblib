@@ -88,67 +88,26 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
         </Text>
       </Flex>
 
-      <Checkbox.Root>
-        <Checkbox.Input
-          checked={options.flagDeviations}
-          onChange={toggle("flagDeviations")}
-          disabled={disabled}
-        />
-        <Checkbox.Label>Flag anything off-system</Checkbox.Label>
-      </Checkbox.Root>
-      <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
+      <Option checked={options.flagDeviations} onChange={toggle("flagDeviations")} disabled={disabled} label="Flag anything off-system">
         Local components, missing mains, and values typed in where a token exists. Layers named with a
         leading <code>*</code> or <code>[custom]</code> are reported as deliberate.
-      </Text>
+      </Option>
 
-      <Checkbox.Root>
-        <Checkbox.Input
-          checked={options.includePositions}
-          onChange={toggle("includePositions")}
-          disabled={disabled}
-        />
-        <Checkbox.Label>Include each layer's position</Checkbox.Label>
-      </Checkbox.Root>
-      <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
+      <Option checked={options.includePositions} onChange={toggle("includePositions")} disabled={disabled} label="Include each layer's position">
         Relative to its parent. Most spacing in a design is the gap between two layers, and a gap can
         only be worked out from where they sit.
-      </Text>
+      </Option>
 
-      <Checkbox.Root>
-        <Checkbox.Input
-          checked={options.summariseVectors}
-          onChange={toggle("summariseVectors")}
-          disabled={disabled}
-        />
-        <Checkbox.Label>Summarise artwork outlines</Checkbox.Label>
-      </Checkbox.Root>
-      <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
+      <Option checked={options.summariseVectors} onChange={toggle("summariseVectors")} disabled={disabled} label="Summarise artwork outlines">
         Replaces vector shapes with a count on the layer holding them. Turn it off when the artwork
         itself is what you are exporting.
-      </Text>
+      </Option>
 
-      <Checkbox.Root>
-        <Checkbox.Input
-          checked={options.includeVariables}
-          onChange={toggle("includeVariables")}
-          disabled={disabled}
-        />
-        <Checkbox.Label>Include the variables these frames bind</Checkbox.Label>
-      </Checkbox.Root>
+      <Option checked={options.includeVariables} onChange={toggle("includeVariables")} disabled={disabled} label="Include the variables these frames bind" />
 
-      <Checkbox.Root>
-        <Checkbox.Input
-          checked={options.includeStyles}
-          onChange={toggle("includeStyles")}
-          disabled={disabled}
-        />
-        <Checkbox.Label>Include the styles these frames use</Checkbox.Label>
-      </Checkbox.Root>
+      <Option checked={options.includeStyles} onChange={toggle("includeStyles")} disabled={disabled} label="Include the styles these frames use" />
 
-      <Checkbox.Root>
-        <Checkbox.Input checked={options.includeSizes} onChange={toggle("includeSizes")} disabled={disabled} />
-        <Checkbox.Label>Include pixel sizes</Checkbox.Label>
-      </Checkbox.Root>
+      <Option checked={options.includeSizes} onChange={toggle("includeSizes")} disabled={disabled} label="Include pixel sizes" />
 
       <Flex align="center" gap="2">
         <Text size="small">Structure depth</Text>
@@ -171,6 +130,31 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
     </Flex>
   );
 };
+
+/**
+ * A checkbox and the sentence explaining it, kept together. The panel spaces
+ * its groups apart, and a hint sitting at that same distance reads as a
+ * statement about the next option rather than the one above it.
+ */
+const Option: React.FC<{
+  checked: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+  label: string;
+  children?: React.ReactNode;
+}> = ({ checked, onChange, disabled, label, children }) => (
+  <Flex direction="column" gap="1">
+    <Checkbox.Root>
+      <Checkbox.Input checked={checked} onChange={onChange} disabled={disabled} />
+      <Checkbox.Label>{label}</Checkbox.Label>
+    </Checkbox.Root>
+    {children && (
+      <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
+        {children}
+      </Text>
+    )}
+  </Flex>
+);
 
 /**
  * What the current scope resolves to, spelled out. Selecting a section and

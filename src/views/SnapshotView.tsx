@@ -33,6 +33,7 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({ editorType }) => {
 
   return (
     <PluginDialogShell
+      scrollKey={snapshot ? "result" : "setup"}
       header={
         snapshot ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">

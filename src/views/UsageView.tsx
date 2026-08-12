@@ -35,6 +35,7 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
 
   return (
     <PluginDialogShell
+      scrollKey={usage ? "result" : "setup"}
       header={
         usage ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">

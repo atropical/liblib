@@ -60,6 +60,7 @@ export const DiffView: React.FC<DiffViewProps> = ({ editorType }) => {
 
   return (
     <PluginDialogShell
+      scrollKey={report ? "result" : "setup"}
       header={
         report ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">

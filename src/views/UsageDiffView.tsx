@@ -60,6 +60,7 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
 
   return (
     <PluginDialogShell
+      scrollKey={report ? "result" : "setup"}
       header={
         report ? (
           <Flex direction="column" gap="1">
