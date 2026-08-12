@@ -13,7 +13,15 @@ export const LEGACY_SNAPSHOT_SCHEMAS = ["help-an-agent/design-system-snapshot@1"
  * components' internals stay in the library snapshot, and the two join on the
  * component publish key.
  */
-export const USAGE_SCHEMA = "liblib/usage-snapshot@1";
+export const USAGE_SCHEMA = "liblib/usage-snapshot@2";
+
+/**
+ * Usage schemas still accepted as a diff base. `@2` added per-node positions,
+ * kept nested instances that `@1` pruned, and started summarising outline
+ * shapes — all additive, so an older export still compares cleanly enough to be
+ * worth more than refusing it.
+ */
+export const LEGACY_USAGE_SCHEMAS = ["liblib/usage-snapshot@1"];
 
 export enum PluginCommands {
   SNAPSHOT = "snapshot",
@@ -370,6 +378,19 @@ export interface UsageOptions {
   includeStyles: boolean;
   includeVariables: boolean;
   includeSizes: boolean;
+  /**
+   * Write each node's position relative to its parent. Without it, the gap
+   * between two layers can only be recovered by opening the file — and most
+   * spacing in a design is a gap, not a padding.
+   */
+  includePositions: boolean;
+  /**
+   * Replace outline shapes (`VECTOR`, `BOOLEAN_OPERATION`) with a count on the
+   * parent. On by default: the outlines inside artwork are the bulk of a
+   * design file and nothing reads them. Turn it off when the artwork itself is
+   * the subject.
+   */
+  summariseVectors: boolean;
   /** Report where the design steps outside the library. */
   flagDeviations: boolean;
 }

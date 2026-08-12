@@ -228,6 +228,17 @@ function outlineNode(node: SerializedNode, lines: string[], indent: number): voi
     if (rendered) parts.push(`(${rendered})`);
   }
 
+  const offset = node.props.offset as [number, number] | undefined;
+  if (offset) parts.push(`@${offset[0]},${offset[1]}`);
+
+  const mismatches = node.props.bindingMismatch as
+    | { field: string; token: string; expected: number; actual: number }[]
+    | undefined;
+  for (const mismatch of mismatches ?? []) {
+    parts.push(`⚠ ${mismatch.field}=${mismatch.actual} but ${mismatch.token}=${mismatch.expected}`);
+  }
+
+  if (node.props.vectorShapes) parts.push(`${node.props.vectorShapes} vector shape(s)`);
   if (typeof node.props.characters === "string") parts.push(`text: ${JSON.stringify(node.props.characters)}`);
   if (node.nodeId) parts.push(`#${node.nodeId}`);
   if (node.hidden) parts.push("hidden");

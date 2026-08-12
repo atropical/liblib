@@ -103,6 +103,32 @@ export const UsageOptionsPanel: React.FC<UsageOptionsPanelProps> = ({
 
       <Checkbox.Root>
         <Checkbox.Input
+          checked={options.includePositions}
+          onChange={toggle("includePositions")}
+          disabled={disabled}
+        />
+        <Checkbox.Label>Include each layer's position</Checkbox.Label>
+      </Checkbox.Root>
+      <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
+        Relative to its parent. Most spacing in a design is the gap between two layers, and a gap can
+        only be worked out from where they sit.
+      </Text>
+
+      <Checkbox.Root>
+        <Checkbox.Input
+          checked={options.summariseVectors}
+          onChange={toggle("summariseVectors")}
+          disabled={disabled}
+        />
+        <Checkbox.Label>Summarise artwork outlines</Checkbox.Label>
+      </Checkbox.Root>
+      <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
+        Replaces vector shapes with a count on the layer holding them. Turn it off when the artwork
+        itself is what you are exporting.
+      </Text>
+
+      <Checkbox.Root>
+        <Checkbox.Input
           checked={options.includeVariables}
           onChange={toggle("includeVariables")}
           disabled={disabled}

@@ -30,9 +30,15 @@ instances pointing at them — so a library snapshot run there comes out empty. 
 direction.
 
 **Export Usage Snapshot…** writes the frames you select, each as a tree, with the component key **and
-variant behind every instance** (`Layout=Overlay, Size=Small, Intent=Main`), the variables and styles
-they bind, and a node id on every node so a nested instance layer can be addressed directly. Frames,
-not screens: a print sheet and a spec board are the same thing here.
+variant behind every instance** (`Layout=Overlay, Size=Small, Intent=Main`) — that pairing is in
+`components[].usedAs`, and it is the thing most worth reading first. Also: each layer's position
+relative to its parent, the variables and styles it binds, and a node id on every node so a nested
+instance layer can be addressed directly. Frames, not screens: a print sheet and a spec board are the
+same thing here.
+
+Inside an instance, a branch is kept when it can say something nothing else can: an override, text, or
+another library component. Everything else is counted and left out, so a screen reads at a fraction of
+its raw size without a fact going missing.
 
 **Diff Against Usage Snapshot…** compares two usage exports. Frames the newer export did not cover are
 reported as *not covered*, never as deleted — so exporting a section one day and two frames the next
@@ -143,6 +149,9 @@ component-count model was out by **266%** on the same file.
 | `components` | One per library component used: publish key, set key and name, whether it is remote, the published property definitions, every variant combination it is used in (`usedAs`), instance count, and which frames it appears in |
 | `styles`, `variables` | Only the ones these frames actually reference — a consuming file has no local ones to list. Variable alias chains are followed to the end, so a screen bound to `Surface/Card` also carries what `Surface/Card` resolves to |
 | `deviations` | Local components, missing main components, and fills, strokes, radii and spacing set by hand where nothing is bound. Each carries `intentional`, set from the layer name marker or plugin data |
+| `props.offset` | `[x, y]` relative to the parent, on every node but the frame root. Most spacing in a design is a gap between siblings, and a gap is only recoverable from where they sit |
+| `props.bindingMismatch` | Where a node claims a token and renders another number — a detached override, a stale binding, or a token that moved. Both values are recorded, because the name alone cannot say which |
+| `props.vectorShapes` | A count of outline shapes replaced by it. Counted rather than dropped, so "there is artwork here" survives |
 | `meta.scope` | The mode and the exact frame list this export covered, which is what lets the diff tell "removed" from "not covered" |
 
 ## Options
@@ -157,6 +166,9 @@ component-count model was out by **266%** on the same file.
   where a screen's own content lives; `Everything` walks it all, at library-snapshot cost. The default
   exists because the library snapshot already holds every instance's insides — writing them again per
   screen costs tokens and adds nothing.
+- **Include each layer's position** — on by default, relative to the parent.
+- **Summarise artwork outlines** — on by default. Vector shapes become a count on the layer holding
+  them; turn it off when the artwork is the subject of the export.
 - **Flag anything off-system** — on by default.
 - **Structure depth** (default 12) — deep enough that a screen's own nesting is not cut short.
 

@@ -18,6 +18,21 @@ export interface SerializeContext {
   /** How much of an instance's subtree to walk. `full` matches a library scan. */
   instanceContent: InstanceContent;
   /**
+   * Write each node's position relative to its parent. A library component is
+   * laid out by its own rules and moves as a unit, so this is for usage
+   * snapshots, where the gap between two layers is a fact about the design.
+   */
+  includePositions: boolean;
+  /** Replace outline shapes with a count on the parent. */
+  summariseVectors: boolean;
+  /**
+   * Compare a bound variable against the value actually rendered, and record
+   * where they differ. Needs variable lookups, so it is opt-in.
+   */
+  checkBindings: boolean;
+  /** Variable id -> its value in the collection's default mode, cached. */
+  variableValues: Map<string, unknown>;
+  /**
    * Style ids met while serializing. A consuming file has no local styles to
    * enumerate, so the styles it uses can only be discovered this way.
    */
@@ -32,6 +47,10 @@ export function createContext(overrides: Partial<SerializeContext> = {}): Serial
     includeNodeIds: false,
     instanceContent: "full",
     styleIds: new Set(),
+    includePositions: false,
+    summariseVectors: false,
+    checkBindings: false,
+    variableValues: new Map(),
     ...overrides,
   };
 }
@@ -51,6 +70,14 @@ export async function serializeNode(
 
   if (ctx.includeNodeIds) serialized.nodeId = node.id;
   if (node.visible === false) serialized.hidden = true;
+
+  // Position relative to the parent, which is what `x`/`y` already are for any
+  // child. The root is skipped: its coordinates are the canvas position of the
+  // whole surface, which moves whenever someone tidies the page and means
+  // nothing about the design.
+  if (ctx.includePositions && level > 0 && "x" in node) {
+    serialized.props.offset = [round(node.x), round(node.y)];
+  }
 
   if ("children" in node && node.children.length > 0) {
     const atInstanceBoundary = node.type === "INSTANCE" && ctx.instanceContent !== "full";
@@ -74,7 +101,12 @@ export async function serializeNode(
 
       serialized.children = [];
       let omitted = 0;
+      let omittedVectors = 0;
       for (const child of node.children) {
+        if (ctx.summariseVectors && isVectorArtwork(child)) {
+          omittedVectors += 1;
+          continue;
+        }
         if (filter && !carriesSignal(child, filter, ctx.depth - level)) {
           omitted += 1;
           continue;
@@ -82,6 +114,9 @@ export async function serializeNode(
         serialized.children.push(await serializeNode(child, ctx, level + 1, filter));
       }
       if (omitted > 0) serialized.omittedChildren = omitted;
+      // Counted, not silently dropped: "this layer holds artwork" is worth
+      // knowing even when the outlines themselves are not.
+      if (omittedVectors > 0) serialized.props.vectorShapes = omittedVectors;
       if (serialized.children.length === 0) delete serialized.children;
     }
   }
@@ -100,23 +135,31 @@ function overriddenIdsOf(instance: InstanceNode): Set<string> {
   return ids;
 }
 
+/** Outline shapes: the insides of artwork, not layers anyone reasons about. */
+function isVectorArtwork(node: SceneNode): boolean {
+  return node.type === "VECTOR" || node.type === "BOOLEAN_OPERATION";
+}
+
 /**
- * Whether a branch inside an instance is worth writing out: it either carries
- * an override, or it holds text. Text is kept unconditionally because the words
- * on a screen are the part no library snapshot can supply — a button reads
- * `Save`, not `Label`, and that is what an agent came for.
+ * Whether a branch inside an instance is worth writing out.
+ *
+ * The test is not the node's type but what the node can say that nothing else
+ * can. An override is a departure from the library. Text is the words, which no
+ * library snapshot holds. And a nested instance names a library component —
+ * the very thing this export exists to record, so pruning it for being
+ * unmodified would be pruning the answer.
  */
 function carriesSignal(node: SceneNode, overriddenIds: Set<string>, remainingDepth: number): boolean {
   for (const id of overriddenIds) {
     if (id === node.id || id.startsWith(`${node.id};`)) return true;
   }
-  return hasText(node, remainingDepth);
+  return hasIdentity(node, remainingDepth);
 }
 
-function hasText(node: SceneNode, remainingDepth: number): boolean {
-  if (node.type === "TEXT") return true;
+function hasIdentity(node: SceneNode, remainingDepth: number): boolean {
+  if (node.type === "TEXT" || node.type === "INSTANCE") return true;
   if (remainingDepth <= 0 || !("children" in node)) return false;
-  return node.children.some((child) => hasText(child, remainingDepth - 1));
+  return node.children.some((child) => hasIdentity(child, remainingDepth - 1));
 }
 
 async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Record<string, unknown>> {
@@ -202,6 +245,10 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
   if ("boundVariables" in node && node.boundVariables) {
     const bound = await serializeBoundVariables(node.boundVariables as Record<string, unknown>, ctx);
     if (Object.keys(bound).length > 0) put("boundVariables", bound);
+    if (ctx.checkBindings) {
+      const mismatches = await bindingMismatches(node, node.boundVariables as Record<string, unknown>, ctx);
+      if (mismatches.length > 0) put("bindingMismatch", mismatches);
+    }
   }
   if ("inferredVariables" in node) {
     // Deliberately skipped: inferred (not bound) variables are a UI hint and
@@ -358,6 +405,89 @@ function serializeComponentProperties(properties: ComponentProperties): unknown 
     out[name] = { type: property.type, value: property.value };
   }
   return out;
+}
+
+/**
+ * Numeric properties whose bound variable can be checked against what the node
+ * actually renders. Only numbers: a colour resolves differently per mode by
+ * design, so a difference there says nothing.
+ */
+const CHECKED_BINDINGS = [
+  "itemSpacing",
+  "counterAxisSpacing",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "topLeftRadius",
+  "topRightRadius",
+  "bottomRightRadius",
+  "bottomLeftRadius",
+  "width",
+  "height",
+] as const;
+
+/**
+ * Where a node claims a token and renders something else.
+ *
+ * A layer bound to `spacing/small` but sitting at 12px when the token says 8 is
+ * one of three things — a detached override, a stale binding, or a token that
+ * moved — and no reader can tell which from the token name alone. Recording
+ * both numbers is what makes the question answerable at all; leaving it out is
+ * what makes a design look consistent when it is not.
+ */
+async function bindingMismatches(
+  node: SceneNode,
+  boundVariables: Record<string, unknown>,
+  ctx: SerializeContext,
+): Promise<unknown[]> {
+  const found: unknown[] = [];
+
+  for (const field of CHECKED_BINDINGS) {
+    const binding = boundVariables[field];
+    if (!binding || Array.isArray(binding)) continue;
+
+    const actual = (node as unknown as Record<string, unknown>)[field];
+    if (typeof actual !== "number") continue;
+
+    const expected = await variableValue(binding as VariableAlias, ctx);
+    if (typeof expected !== "number") continue;
+    if (round(expected) === round(actual)) continue;
+
+    found.push({
+      field,
+      token: await variableName(binding as VariableAlias, ctx),
+      expected: round(expected),
+      actual: round(actual),
+    });
+  }
+
+  return found;
+}
+
+/**
+ * A variable's value in its collection's default mode. The default mode is the
+ * only mode every collection is guaranteed to have, and comparing against a
+ * mode the design is not currently in would invent mismatches.
+ */
+async function variableValue(alias: VariableAlias, ctx: SerializeContext): Promise<unknown> {
+  if (!alias || typeof alias !== "object" || !("id" in alias)) return undefined;
+  if (ctx.variableValues.has(alias.id)) return ctx.variableValues.get(alias.id);
+
+  let value: unknown;
+  try {
+    const variable = await figma.variables.getVariableByIdAsync(alias.id);
+    const collection = variable
+      ? await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId)
+      : null;
+    if (variable && collection) value = variable.valuesByMode[collection.defaultModeId];
+  } catch {
+    // A variable from a library this file can no longer reach: the binding is
+    // already recorded by name, which is the part worth having.
+  }
+
+  ctx.variableValues.set(alias.id, value);
+  return value;
 }
 
 async function serializeBoundVariables(

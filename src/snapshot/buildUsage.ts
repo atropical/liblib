@@ -37,8 +37,26 @@ export const DEFAULT_USAGE_OPTIONS: UsageOptions = {
   includeStyles: true,
   includeVariables: true,
   includeSizes: true,
+  // Most spacing in a design is the gap between two layers, and a gap is only
+  // recoverable from where those layers sit.
+  includePositions: true,
+  summariseVectors: true,
   flagDeviations: true,
 };
+
+/** Everything a usage scan asks of the serializer, in one place. */
+function usageContext(options: UsageOptions): SerializeContext {
+  return createContext({
+    depth: options.depth,
+    includeSizes: options.includeSizes,
+    includeNodeIds: true,
+    instanceContent: options.instanceContent,
+    includePositions: options.includePositions,
+    summariseVectors: options.summariseVectors,
+    // A mismatch is only checkable when variables are being resolved anyway.
+    checkBindings: options.includeVariables,
+  });
+}
 
 /** Node types that count as a surface in their own right. */
 const FRAME_TYPES = new Set(["FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE"]);
@@ -67,12 +85,7 @@ export async function buildUsage(
     );
   }
 
-  const ctx = createContext({
-    depth: options.depth,
-    includeSizes: options.includeSizes,
-    includeNodeIds: true,
-    instanceContent: options.instanceContent,
-  });
+  const ctx = usageContext(options);
 
   const frames = await collectFrames(roots, ctx, onProgress);
   const components = await collectComponentUsage(roots, frames, onProgress);
@@ -98,12 +111,7 @@ export async function probeUsage(
   if (options.scope === "file") await figma.loadAllPagesAsync();
 
   const roots = await resolveFrames(options.scope);
-  const ctx = createContext({
-    depth: options.depth,
-    includeSizes: options.includeSizes,
-    includeNodeIds: true,
-    instanceContent: options.instanceContent,
-  });
+  const ctx = usageContext(options);
 
   const weights = roots.map((root) => countNodes(root, options.depth));
   const totalNodes = weights.reduce((sum, weight) => sum + weight, 0);

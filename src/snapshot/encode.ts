@@ -2,6 +2,7 @@ import { decode as toonDecode, encode as toonEncode } from "@toon-format/toon";
 import {
   DiffReport,
   LEGACY_SNAPSHOT_SCHEMAS,
+  LEGACY_USAGE_SCHEMAS,
   SNAPSHOT_SCHEMA,
   Snapshot,
   USAGE_SCHEMA,
@@ -98,7 +99,8 @@ export function encodeAny(payload: Snapshot | UsageSnapshot, format: OutputForma
 /** Reads back a usage snapshot the plugin previously wrote. */
 export function parseUsage(text: string, fileName: string): UsageSnapshot {
   const parsed = decodeByExtension(text, fileName) as UsageSnapshot;
-  if (parsed?.schema !== USAGE_SCHEMA) {
+  const known = parsed?.schema === USAGE_SCHEMA || LEGACY_USAGE_SCHEMAS.includes(parsed?.schema);
+  if (!known) {
     throw new Error(
       parsed?.schema === SNAPSHOT_SCHEMA || LEGACY_SNAPSHOT_SCHEMAS.includes(parsed?.schema)
         ? "That is a library snapshot. Load a usage snapshot — the file exported from the design, not from the library."
