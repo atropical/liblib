@@ -27,7 +27,10 @@ export const PLUGIN_VERSION = __PLUGIN_VERSION__;
 export type ProgressFn = (stage: string, scanned: number, total: number) => void;
 
 export const DEFAULT_OPTIONS: SnapshotOptions = {
-  depth: 6,
+  // Same default as a usage scan, so a component and the frame using it are
+  // never described to different depths — a truncation on one side and not the
+  // other is the kind of asymmetry an agent reads as a difference.
+  depth: 12,
   includeStyles: true,
   includeVariables: true,
   // On by default: geometry bugs (a 32px button rendering against a 28px

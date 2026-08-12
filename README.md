@@ -158,11 +158,11 @@ component-count model was out by **266%** on the same file.
   exists because the library snapshot already holds every instance's insides — writing them again per
   screen costs tokens and adds nothing.
 - **Flag anything off-system** — on by default.
-- **Structure depth** (default 12) — screens nest deeper than components do.
+- **Structure depth** (default 12) — deep enough that a screen's own nesting is not cut short.
 
 ### Library scan
 
-- **Structure depth** (default 6) — how deep into each component's tree to serialize. Truncated
+- **Structure depth** (default 12, the same as a usage scan) — how deep into each component's tree to serialize. Truncated
   branches are marked `truncated: true` rather than silently reported as leaves. The estimate panel
   updates as you change it, so the depth/cost trade-off is visible up front.
 - **Include styles / variables** — on by default.
