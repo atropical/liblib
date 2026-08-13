@@ -1,5 +1,11 @@
 TAGLINE:
-Design systems in a form agents can actually read. Snapshot your library, snapshot the designs that use it, and let `git diff` tell your agent what changed.
+Design systems in a form agents can actually read — the library, and the designs using it.
+
+RELEASE NOTES (2.1.0):
+🏷️ **Two fields renamed to say what they are.** A layer's `offset` is now `position` — an effect already used `offset` for its shadow, and readers kept finding the wrong one. A bound-token mismatch now reads `tokenValue` and `rendered` instead of `expected` and `actual`, which are ambiguous once a table header scrolls out of view.
+🔗 **Usage diffs match layers by node id, not by position.** Insert one layer and you now get one added layer, instead of every sibling after it reported as changed.
+📌 **Gate on `meta.schema`, not `meta.pluginVersion`** — the schema is the contract, the version is only which build wrote the file.
+♻️ Usage schema is `@3`; `@1` and `@2` still load as a diff base.
 
 RELEASE NOTES (2.0.0):
 🆕 **Two new commands — Export Usage Snapshot… and Diff Against Usage Snapshot….** For design files that *use* a library, where the old snapshot came out empty. Pick frames by selection, page, or whole file; a section and the frames inside it export identically, and a narrower export reads as *not covered* rather than deleted.
@@ -12,60 +18,36 @@ RELEASE NOTES (2.0.0):
 ♻️ **Old snapshots still load.** Both kinds work as a diff base exactly as before.
 
 DESCRIPTION:
-**LibLib** is a Figma plugin that exports your design system as deterministic, diffable files, so an LLM agent can answer the two questions nothing else in Figma can: what changed since last time, and what is this design actually made of?
+**LibLib** exports your design system as deterministic, diffable files, so an agent can answer the two questions Figma can't: what changed since last time, and what is this design actually made of?
 
-Your agent can already read your components — Figma's MCP server hands it context on demand. What it can't tell you is what changed since last week; there is no published-component history and no diff anywhere in the platform, not in the MCP server, not in the Plugin API, not in REST. And in a design file it can see that a layer is an instance but not which variant, so it guesses — which is where wrong button sizes and invented shadows come from.
-
-LibLib writes both down.
+Agents can already read your components — Figma's MCP server hands them context on demand. What no API gives them is history, or the variant behind an instance. So they guess, and that is where wrong button sizes and invented shadows come from.
 
 ## Features
-**Library Snapshots:** Every component, component set, variant, property, style and variable in one deterministic file, with a content hash per record. Same design in, byte-identical file out
-**Usage Snapshots:** Run it in a file that *uses* your library and get each frame written out with the component key and exact variant behind every instance, what each override was set to, the tokens bound, and a node id on every layer
-**Diff Either One:** Load a previous export, rescan, and get a report of what was added, removed, renamed or modified — down to the field path (`structure.children[0].props.padding`, `properties.Size.variantOptions`, `valuesByMode.Dark`), with old value against new
-**Renames Stay Renames:** Library changes are tracked by publish key, so a renamed component never reads as one deleted and another invented — the single mistake that sends agents rewriting components nobody touched
-**Honest Scope:** A usage export records which frames it covered, so exporting a section one day and two screens the next reports the difference as *not covered*, never as deleted
-**Off-System Flags:** Local components, missing main components, and values typed in where a token exists, each marked deliberate or not — so an agent can tell a considered exception from a mistake
-**Positions and Tokens Together:** Layers carry their position relative to the parent and the token bound to each spacing value, and where a bound token disagrees with what renders, both numbers are recorded
-**Screens Without the Bulk:** Instances stop at their boundary, keeping only what carries an override, text, or another component; artwork outlines collapse to a count on the layer holding them
-**Three Formats With Token Counts:** TOON for machines (~40% cheaper than JSON, losslessly convertible back), Markdown to read, JSON as a universal baseline — each with an estimated token range shown before you export
-**Cost Estimate Before You Scan:** Large files are measured first. A stratified sample and an exact node count predict scan time, file size and token cost per format, and re-predict whenever you change an option
-**Resolved Tokens, Not Raw Ids:** Bound variables are resolved to `Collection/Variable` names, including variables bound inside a style's shadow colour, offset, radius or spread
-**Node Ids Included:** Every component, variant and — in a usage export — every layer carries its Figma node id, so an agent can link straight back into the file or hand it to the MCP tools
+**Library Snapshots:** Every component, variant, property, style and variable in one deterministic file, hashed per record. Same design in, byte-identical file out
+**Usage Snapshots:** Run it in a file that *uses* your library: each frame written out with the component and exact variant behind every instance, what each override was set to, the tokens bound, and a node id on every layer
+**Diff Either One:** Load a previous export, rescan, and see what was added, removed, renamed or modified — down to the field path, old value against new
+**Renames Stay Renames:** Tracked by publish key, so a renamed component never reads as one deleted and another invented
+**Honest Scope:** A usage export records the frames it covered, so a narrower export reads as *not covered*, never as deleted
+**Off-System Flags:** Local components, missing mains, and values typed in where a token exists — each marked deliberate or not, so an agent can tell an exception from a mistake
+**Screens Without the Bulk:** Instances stop at their boundary and artwork outlines collapse to a count, so a screen reads at a fraction of its raw size
+**Three Formats, Costed:** TOON (~40% cheaper than JSON, losslessly convertible back), Markdown to read, JSON as a baseline — with an estimated token range and predicted scan time before you commit to a scan
+**Resolved Tokens, Not Raw Ids:** Bound variables come through as `Collection/Variable`, including those bound inside a style's shadow
 **Fully Offline:** No network requests at all. Nothing leaves Figma
 
-### Notes:
-† Markdown is a rendering, not a source — it is the cheapest format to read but cannot be loaded back as a diff base. Use TOON or JSON for anything you intend to diff against later.
-‡ Figma caps a plugin run at roughly ten save dialogs, which is why each export writes a single file.
+† Markdown is a rendering, not a source: cheapest to read, but it cannot be loaded back as a diff base. Use TOON or JSON for anything you intend to diff against.
 
 ## Usage
-### In your library file
-1. Open the Figma file containing your library
-2. Run **LibLib** from the Plugins menu and choose **Export Library Snapshot…**
-3. Review the estimate, pick a format and adjust depth if needed
-4. Click **Scan file**, then **Download**
-5. Commit the file next to your code, e.g. `design-system/.figma/library.snapshot.toon`
+**In your library file** — run **Export Library Snapshot…**, scan, download, and commit it next to your code (`design-system/.figma/library.snapshot.toon`).
 
-### In a file that uses the library
-1. Select the frames you want — or a section holding them
-2. Run **LibLib** and choose **Export Usage Snapshot…**
-3. Check the frame list the panel reports, adjust the options, and scan
-4. Commit it alongside, e.g. `.figma/usage.snapshot.toon`
+**In a file that uses it** — select the frames you want, or a section holding them, run **Export Usage Snapshot…**, and commit that alongside.
 
-The two join on the component publish key: the usage file says which component and which variant a frame uses, the library file says what that component is. Neither repeats the other.
+The two join on the component publish key: the usage file says which component and variant a frame uses, the library file says what that component is. Neither repeats the other.
 
-### Dev Mode
-Open the file, switch to Dev Mode, and run **LibLib** from the Plugins menu — the same commands run in the handoff panel.
+**To compare** — run either **Diff Against…** command and pick a `.json` or `.toon` the plugin wrote earlier. The current file is rescanned and the report shows old value against new.
 
-### Diffing against a previous export
-1. Run **LibLib** and choose **Diff Against Library Snapshot…** or **Diff Against Usage Snapshot…**
-2. Select a `.json` or `.toon` file previously exported by the plugin
-3. The current file is rescanned and compared
-4. Review the report, expand any change to see old value against new, then download it
+Works in Dev Mode too, in the handoff panel.
 
-### Suggested Workflow
-1. Designer publishes the library and re-exports the snapshot over the committed file
-2. The commit diff *is* the design system changelog
-3. The agent reads `git diff` (or the Markdown report) and knows exactly which components to re-implement, and which screens use them
+Re-export over the committed file whenever the library is published: the commit diff *is* your design system changelog, and the agent reads it with `git diff`.
 
 LibLib is open source, consider contributing. Code available on [GitHub](https://github.com/atropical/liblib).
 
