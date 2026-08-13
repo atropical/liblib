@@ -1,0 +1,14 @@
+meta:
+  counts:
+    components: 2
+    deviations: 2
+    frames: 2
+  fileKey: abc123
+  fileName: Acme Checkout
+  generatedAt: "2026-08-01T10:00:00.000Z"
+  pluginVersion: 2.1.1
+  scope:
+    frames[2]: Checkout / Order Summary,Checkout / Receipt
+    mode: selection
+    pages[1]: Checkout
+schema: liblib/usage-snapshot@3

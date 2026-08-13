@@ -7,6 +7,7 @@ import {
   FrameRecord,
   ProbeGroup,
   ProbeResult,
+  READ_WITH,
   SelectionSummary,
   StyleRecord,
   USAGE_SCHEMA,
@@ -737,6 +738,7 @@ function assembleUsage(
       pluginVersion: PLUGIN_VERSION,
       fileName: figma.root.name,
       fileKey: figma.fileKey,
+      readWith: READ_WITH,
       scope: {
         mode: scope,
         pages: Array.from(new Set(frames.map((frame) => frame.page))).sort(),

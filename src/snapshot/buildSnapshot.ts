@@ -5,6 +5,7 @@ import {
   ComponentRecord,
   ProbeGroup,
   ProbeResult,
+  READ_WITH,
   SNAPSHOT_SCHEMA,
   Snapshot,
   SnapshotOptions,
@@ -179,6 +180,7 @@ function assemble(
       pluginVersion: PLUGIN_VERSION,
       fileName: figma.root.name,
       fileKey: figma.fileKey,
+      readWith: READ_WITH,
       counts: {
         components: components.filter((c) => c.type === "COMPONENT").length,
         componentSets: components.filter((c) => c.type === "COMPONENT_SET").length,

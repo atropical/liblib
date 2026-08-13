@@ -1,0 +1,141 @@
+components[2]:
+  - frames[1]: Checkout / Order Summary
+    hash: ccdc00096f415f4b
+    instanceCount: 7
+    key: btnkey00000000000000000000000000000000001
+    name: Button / Primary
+    properties:
+      "Icon#12:3":
+        defaultValue: abc
+        type: INSTANCE_SWAP
+      Size:
+        defaultValue: Medium
+        type: VARIANT
+        variantOptions[2]: Large,Medium
+    remote: true
+    setKey: btnset0000000000000000000000000000000001
+    setName: Button
+    usedAs[2]: "Size=Large, State=Default","Size=Medium, State=Hover"
+  - frames[1]: Checkout / Order Summary
+    hash: 47bc37b7b63c0f71
+    instanceCount: 3
+    key: chipkey0000000000000000000000000000000001
+    name: Chip / Price
+    remote: true
+    usedAs[1]: "Size=Small, Intent=Main"
+deviations[2]{detail,frame,intentional,kind,name,nodeId,path,type}:
+  itemSpacing 20 is not a token value.,Checkout / Order Summary,false,hardcoded-spacing,Totals,"10:2",Order Summary,FRAME
+  "Instance of `Local Note`, defined in this file rather than a library.",Checkout / Receipt,true,local-component,Thanks,"20:2",Receipt,TEXT
+frames[2]:
+  - hash: ad0779833c2f680d
+    key: Checkout / Order Summary
+    name: Order Summary
+    nodeId: "10:1"
+    page: Checkout
+    size[2]: 1440,900
+    structure:
+      name: Order Summary
+      type: FRAME
+      nodeId: "10:1"
+      props:
+        cornerRadius: 8
+        itemSpacing: 16
+        layoutMode: VERTICAL
+      children[3]:
+        - name: Totals
+          type: FRAME
+          nodeId: "10:2"
+          props:
+            bindingMismatch[1]{actual,expected,field,token}:
+              20,16,itemSpacing,spacing/md
+            boundVariables:
+              itemSpacing: spacing/md
+            itemSpacing: 20
+            offset[2]: 24,96
+          children[2]:
+            - name: Line item
+              type: TEXT
+              nodeId: "10:3"
+              props:
+                characters: "Subtotal, before tax"
+                position[2]: 0,0
+            - name: Price Chip
+              type: INSTANCE
+              nodeId: "10:4"
+              props:
+                componentProperties[2:]{value}:
+                  "Icon#12:3": abc
+                  Size: Small
+                mainComponent:
+                  key: chipkey0000000000000000000000000000000001
+                  name: Chip / Price
+                position[2]: 0,32
+        - name: Legacy Banner
+          type: GROUP
+          nodeId: "10:5"
+          hidden: true
+          props:
+            position[2]: 24,320
+          children[1]{name,type,nodeId,props{characters}}:
+            Old promo copy,TEXT,"10:6","Ends Friday, midnight"
+        - name: Confirm
+          type: INSTANCE
+          nodeId: "10:7"
+          props:
+            componentProperties:
+              Size:
+                value: Large
+            mainComponent:
+              key: btnkey00000000000000000000000000000000001
+              name: Button / Primary
+            position[2]: 24,420
+    type: FRAME
+  - hash: 9fd547131bdad735
+    key: Checkout / Receipt
+    name: Receipt
+    nodeId: "20:1"
+    page: Checkout
+    size[2]: 1440,640
+    structure:
+      name: Receipt
+      type: FRAME
+      nodeId: "20:1"
+      props:
+        layoutMode: VERTICAL
+      children[1]{name,type,nodeId,props{characters}}:
+        Thanks,TEXT,"20:2",Thank you
+    type: FRAME
+meta:
+  counts:
+    components: 2
+    deviations: 2
+    frames: 2
+  fileKey: abc123
+  fileName: Acme Checkout
+  generatedAt: "2026-08-01T10:00:00.000Z"
+  pluginVersion: 2.1.1
+  scope:
+    frames[2]: Checkout / Order Summary,Checkout / Receipt
+    mode: selection
+    pages[1]: Checkout
+schema: liblib/usage-snapshot@2
+styles[2]{description,hash,key,name,type,value}:
+  "",a59f2165a37102e7,style0001,Colour / Brand / Primary,PAINT,"#0d99ff"
+  "",3397b22a0973e210,style0002,Text / Body,TEXT,Inter 14/20
+variableCollections[1]:
+  - defaultMode: Light
+    key: col1
+    modes[2]: Light,Dark
+    name: Primitives
+variables[1]:
+  - codeSyntax:
+    collection: Primitives
+    description: ""
+    hash: 8502b90d3bf4199b
+    key: var1
+    name: spacing/md
+    resolvedType: FLOAT
+    scopes[1]: GAP
+    valuesByMode:
+      Dark: 16
+      Light: 16

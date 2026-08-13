@@ -4,6 +4,7 @@
   "description": "LibLib is a Figma plugin that exports a Figma design system in a form agents can actually read: a deterministic, diffable snapshot of the library, and of what each design file uses from it — component, variant and token behind every instance.",
   "main": "dist/code.js",
   "type": "module",
+  "workspaces": ["packages/*"],
   "scripts": {
     "build": "npm run build:ui && npm run build:plugin -- --minify",
     "build:plugin": "esbuild src/code.ts --bundle --target=es6 --define:__PLUGIN_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/code.js",

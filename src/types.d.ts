@@ -26,6 +26,15 @@ export const USAGE_SCHEMA = "liblib/usage-snapshot@3";
  */
 export const LEGACY_USAGE_SCHEMAS = ["liblib/usage-snapshot@1", "liblib/usage-snapshot@2"];
 
+/**
+ * Written into the `meta` block of every export, so a file states how to read
+ * itself. An agent that opens a raw `.toon` snapshot with no other context
+ * should not have to be told what it is looking at.
+ *
+ * Defined once and used by both builders — the two must never drift.
+ */
+export const READ_WITH = "npx @atropical/liblib info <file> — typed reader for this format";
+
 export enum PluginCommands {
   SNAPSHOT = "snapshot",
   DIFF = "diff",
@@ -190,6 +199,13 @@ export interface Snapshot {
      * one. Absent when Figma withholds it (public plugins on some plans).
      */
     fileKey?: string;
+    /**
+     * How to read this file, stated in the file itself. An agent that opens a
+     * raw export should not have to be told what a `.toon` snapshot is.
+     * Optional: files written before this field existed still load as a diff
+     * base.
+     */
+    readWith?: string;
     counts: Record<string, number>;
   };
   components: ComponentRecord[];
@@ -273,6 +289,13 @@ export interface UsageSnapshot {
     pluginVersion: string;
     fileName: string;
     fileKey?: string;
+    /**
+     * How to read this file, stated in the file itself. An agent that opens a
+     * raw export should not have to be told what a `.toon` snapshot is.
+     * Optional: files written before this field existed still load as a diff
+     * base.
+     */
+    readWith?: string;
     /**
      * How the frames were chosen, and which ones were exported. A diff compares
      * the intersection of two scopes, so a narrower export reads as

@@ -91,6 +91,11 @@ repeats the other.
 
 ## What gets captured
 
+Both kinds of snapshot carry `meta.readWith` — one line naming the reader for the format, so an agent
+that opens a raw export learns how to read it without being told. Like everything under `meta`, it is
+informational: excluded from every hash and never compared by a diff. It is optional on the type,
+because files exported before it existed are still valid diff bases.
+
 Per component / component set:
 
 | Field | Notes |

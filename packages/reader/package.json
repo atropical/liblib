@@ -1,0 +1,32 @@
+{
+  "name": "@atropical/liblib",
+  "version": "0.1.0",
+  "description": "Typed reader for LibLib design-system and usage snapshots, with a schema guard that throws instead of returning plausible empties.",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "author": "Atropical AS",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "liblib": "./dist/cli.js"
+  },
+  "files": ["dist", "SKILL.md", "README.md"],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "types": "tsc -p tsconfig.json && node scripts/finish-types.mjs",
+    "fixtures": "esbuild scripts/make-fixtures.ts --bundle --platform=node --format=esm --external:@toon-format/toon --outfile=node_modules/.cache/make-fixtures.mjs && node node_modules/.cache/make-fixtures.mjs",
+    "pretest": "npm run build",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@toon-format/toon": "^4.1.0"
+  }
+}
