@@ -2,12 +2,16 @@
 
 Design libraries in a form agents can actually read.
 
-A Figma plugin that makes a design system library **diffable**.
+A Figma plugin that makes a design system **diffable** — the library, and the designs that use it.
 
 LLM agents working against a Figma library have no way to answer "what changed since last time?".
 Figma has no API for it either — see [Why this exists](#why-this-exists). LibLib solves it the
 way developers already solve it: it exports a deterministic snapshot file you commit to your repo, so
 `git diff` becomes the changelog your agent reads.
+
+The same problem has a second half. In a file that *uses* the library, an agent can see that a layer
+is an instance but not which variant it is, so it infers — and infers wrong. A usage snapshot writes
+that down instead.
 
 ## What it does
 
@@ -106,13 +110,29 @@ colour, offset, radius or spread — are resolved to the variable name, the same
 nodes. The raw `VariableID:…` is useless in a snapshot: the `variables` section is keyed by publish
 key, so there is no join, and a literal colour cannot tell you which token the CSS should reference.
 
-Deliberately excluded, because they change without the design changing: node ids inside the tree,
-absolute x/y, and inferred variables.
+Deliberately excluded from a *library* snapshot, because they change without the design changing:
+node ids inside the tree, position, and inferred variables. A usage snapshot keeps both — a screen is
+read to be navigated back into, and the gap between two layers is a fact about the design.
+
+### A usage snapshot
+
+| Section | Notes |
+| --- | --- |
+| `frames` | One record per exported frame. Keyed by `Page / Section / Frame` — its document path, not the selection, so selecting a section and selecting the frames inside it produce the same keys. `nodeId` on every node in the tree; excluded from hashes, like everywhere else |
+| `components` | One per library component used: publish key, set key and name, whether it is remote, the published property definitions, every variant combination it is used in (`usedAs`), instance count, and which frames it appears in |
+| `styles`, `variables` | Only the ones these frames actually reference — a consuming file has no local ones to list. Variable alias chains are followed to the end, so a screen bound to `Surface/Card` also carries what `Surface/Card` resolves to |
+| `deviations` | Local components, missing main components, and fills, strokes, radii and spacing set by hand where nothing is bound. Each carries `intentional`, set from the layer name marker or plugin data |
+| `props.offset` | `[x, y]` relative to the parent, on every node but the frame root. Most spacing in a design is a gap between siblings, and a gap is only recoverable from where they sit |
+| `props.bindingMismatch` | Where a node claims a token and renders another number — a detached override, a stale binding, or a token that moved. Both values are recorded, because the name alone cannot say which |
+| `props.overrides` | The value behind each override: what a label now reads, which component was swapped in. `overriddenFields` names the fields; this says what they were set to |
+| `props.vectorShapes` | A count of outline shapes replaced by it. Counted rather than dropped, so "there is artwork here" survives |
+| `meta.scope` | The mode and the exact frame list this export covered, which is what lets the diff tell "removed" from "not covered" |
 
 ## Cost estimate before you scan
 
-Both views probe the file before you commit to a full scan: they count nodes exactly, serialize a
-sample of components stratified by size, time it, and fit the result. The panel reports the component count, predicted scan duration,
+Every view probes before you commit to a full scan: it counts nodes exactly, serializes a sample of
+components (or frames) stratified by size, times it, and fits the result. The panel reports the root
+count, predicted scan duration,
 and predicted output size and token range per format — and it re-probes whenever you change an option,
 so you can see what depth 8 costs versus depth 3 before waiting for either.
 
@@ -140,20 +160,6 @@ Cost is modelled as `fixed + a × components + b × nodes`:
 Simulated against synthetic libraries of varying shape, the fitted estimate lands within **3%**,
 worsening to ~7% (TOON) on a pathological mix — 7 large component sets among 1,537 icons. The earlier
 component-count model was out by **266%** on the same file.
-
-### A usage snapshot
-
-| Section | Notes |
-| --- | --- |
-| `frames` | One record per exported frame. Keyed by `Page / Section / Frame` — its document path, not the selection, so selecting a section and selecting the frames inside it produce the same keys. `nodeId` on every node in the tree; excluded from hashes, like everywhere else |
-| `components` | One per library component used: publish key, set key and name, whether it is remote, the published property definitions, every variant combination it is used in (`usedAs`), instance count, and which frames it appears in |
-| `styles`, `variables` | Only the ones these frames actually reference — a consuming file has no local ones to list. Variable alias chains are followed to the end, so a screen bound to `Surface/Card` also carries what `Surface/Card` resolves to |
-| `deviations` | Local components, missing main components, and fills, strokes, radii and spacing set by hand where nothing is bound. Each carries `intentional`, set from the layer name marker or plugin data |
-| `props.offset` | `[x, y]` relative to the parent, on every node but the frame root. Most spacing in a design is a gap between siblings, and a gap is only recoverable from where they sit |
-| `props.bindingMismatch` | Where a node claims a token and renders another number — a detached override, a stale binding, or a token that moved. Both values are recorded, because the name alone cannot say which |
-| `props.overrides` | The value behind each override: what a label now reads, which component was swapped in. `overriddenFields` names the fields; this says what they were set to |
-| `props.vectorShapes` | A count of outline shapes replaced by it. Counted rather than dropped, so "there is artwork here" survives |
-| `meta.scope` | The mode and the exact frame list this export covered, which is what lets the diff tell "removed" from "not covered" |
 
 ## Options
 
@@ -247,7 +253,7 @@ Layout:
 
 ```
 src/
-  code.ts                    plugin thread: run command, build snapshot, post back
+  code.ts                    plugin thread: run command, build a snapshot, post back
   ui.tsx                     UI thread: routes on the invoked menu command
   snapshot/
     buildSnapshot.ts         library scan: walks the document, collects components/styles/variables
@@ -256,6 +262,8 @@ src/
     diff.ts                  key-matched record diff with field paths
     markdown.ts              agent-facing report rendering
     encode.ts                TOON / JSON / Markdown encoders + snapshot parsing
+  views/                     one per menu command: library scan, usage scan, and their diffs
+  hooks/                     the request/response round-trip with the plugin thread
   components/                preview, format selector, options, layout
   utils/
     stable.ts                canonical JSON, hashing, rounding
@@ -265,7 +273,7 @@ src/
 
 ## Status
 
-v1.1.0. Figma Community plugin id `1665168884798434636`.
+v1.3.0. Figma Community plugin id `1665168884798434636`.
 
 ## Licence
 

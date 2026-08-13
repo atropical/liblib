@@ -1,7 +1,7 @@
 {
   "name": "liblib",
-  "version": "1.2.0",
-  "description": "LibLib is a Figma plugin that exports design libraries in a form agents can actually read: a deterministic, diffable snapshot of every component, style and variable.",
+  "version": "1.3.0",
+  "description": "LibLib is a Figma plugin that exports a Figma design system in a form agents can actually read: a deterministic, diffable snapshot of the library, and of what each design file uses from it — component, variant and token behind every instance.",
   "main": "dist/code.js",
   "type": "module",
   "scripts": {
