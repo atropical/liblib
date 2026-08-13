@@ -1,6 +1,9 @@
 TAGLINE:
 Design systems in a form agents can actually read — the library, and the designs using it.
 
+RELEASE NOTES (2.1.1):
+🔇 **A diff across a plugin update no longer reads as a change to every layer.** When the base export was written to an older schema, fields renamed or added since are suppressed and the report says so at the top. Measured on a real 5 MB route, this was 1,818 of 1,872 nodes reported changed — all one renamed field, with the 24 genuine changes buried inside.
+
 RELEASE NOTES (2.1.0):
 🏷️ **Two fields renamed to say what they are.** A layer's `offset` is now `position` — an effect already used `offset` for its shadow, and readers kept finding the wrong one. A bound-token mismatch now reads `tokenValue` and `rendered` instead of `expected` and `actual`, which are ambiguous once a table header scrolls out of view.
 🔗 **Usage diffs match layers by node id, not by position.** Insert one layer and you now get one added layer, instead of every sibling after it reported as changed.

@@ -324,6 +324,12 @@ export interface UsageDiffReport {
   schema: string;
   base: { fileName: string; generatedAt: string };
   head: { fileName: string; generatedAt: string };
+  /**
+   * Anything a reader must know before trusting the numbers — chiefly that the
+   * two exports were written to different schemas, and which fields were left
+   * out because of it.
+   */
+  notes: string[];
   summary: Record<string, number>;
   frames: DiffEntry[];
   components: DiffEntry[];
