@@ -17,6 +17,8 @@ const KIND_COLOUR: Record<DiffEntry["kind"], string> = {
   removed: "var(--figma-color-text-danger)",
   renamed: "var(--figma-color-text-warning)",
   modified: "var(--figma-color-text-brand)",
+  // Not a change in the design — a statement about what this export covered.
+  "out-of-scope": "var(--figma-color-text-tertiary)",
 };
 
 export const DiffEntryList: React.FC<DiffEntryListProps> = ({ entries }) => {

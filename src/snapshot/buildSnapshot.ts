@@ -27,7 +27,10 @@ export const PLUGIN_VERSION = __PLUGIN_VERSION__;
 export type ProgressFn = (stage: string, scanned: number, total: number) => void;
 
 export const DEFAULT_OPTIONS: SnapshotOptions = {
-  depth: 6,
+  // Same default as a usage scan, so a component and the frame using it are
+  // never described to different depths — a truncation on one side and not the
+  // other is the kind of asymmetry an agent reads as a difference.
+  depth: 12,
   includeStyles: true,
   includeVariables: true,
   // On by default: geometry bugs (a 32px button rendering against a 28px
@@ -278,7 +281,7 @@ function serializePropertyDefinitions(
 }
 
 /** `Page / Section / Frame` — human orientation only, excluded from the hash. */
-function nodePath(node: BaseNode): string {
+export function nodePath(node: BaseNode): string {
   const parts: string[] = [];
   let current: BaseNode | null = node.parent;
   while (current && current.type !== "DOCUMENT") {
@@ -302,35 +305,53 @@ async function collectStyles(
   ]);
 
   const records: StyleRecord[] = [];
-  for (const style of paints) records.push(await styleRecord(style, "PAINT", { paints: style.paints }, ctx));
-  for (const style of texts) {
-    records.push(
-      await styleRecord(style, "TEXT", {
-        fontName: style.fontName,
-        fontSize: style.fontSize,
-        lineHeight: style.lineHeight,
-        letterSpacing: style.letterSpacing,
-        textCase: style.textCase,
-        textDecoration: style.textDecoration,
-        paragraphSpacing: style.paragraphSpacing,
-        paragraphIndent: style.paragraphIndent,
-        listSpacing: style.listSpacing,
-        hangingPunctuation: style.hangingPunctuation,
-        hangingList: style.hangingList,
-        leadingTrim: style.leadingTrim,
-        boundVariables: style.boundVariables,
-      }, ctx),
-    );
-  }
-  for (const style of effects) {
-    records.push(await styleRecord(style, "EFFECT", { effects: style.effects }, ctx));
-  }
-  for (const style of grids) {
-    records.push(await styleRecord(style, "GRID", { layoutGrids: style.layoutGrids }, ctx));
+  for (const style of [...paints, ...texts, ...effects, ...grids]) {
+    records.push(await styleRecordFor(style, ctx));
   }
 
   onProgress("styles", 1, 1);
   return records.sort(byField((record) => `${record.type}:${record.key || record.name}`));
+}
+
+/**
+ * A style record from any style node, local or remote. The value shape differs
+ * per type, so the type is read off the node rather than passed in — that is
+ * what lets a consuming file build records for library styles it merely uses.
+ */
+export async function styleRecordFor(style: BaseStyle, ctx: SerializeContext): Promise<StyleRecord> {
+  if (style.type === "PAINT") {
+    const paintStyle = style as PaintStyle;
+    return styleRecord(paintStyle, "PAINT", { paints: paintStyle.paints }, ctx);
+  }
+  if (style.type === "TEXT") {
+    const textStyle = style as TextStyle;
+    return styleRecord(
+      textStyle,
+      "TEXT",
+      {
+        fontName: textStyle.fontName,
+        fontSize: textStyle.fontSize,
+        lineHeight: textStyle.lineHeight,
+        letterSpacing: textStyle.letterSpacing,
+        textCase: textStyle.textCase,
+        textDecoration: textStyle.textDecoration,
+        paragraphSpacing: textStyle.paragraphSpacing,
+        paragraphIndent: textStyle.paragraphIndent,
+        listSpacing: textStyle.listSpacing,
+        hangingPunctuation: textStyle.hangingPunctuation,
+        hangingList: textStyle.hangingList,
+        leadingTrim: textStyle.leadingTrim,
+        boundVariables: textStyle.boundVariables,
+      },
+      ctx,
+    );
+  }
+  if (style.type === "EFFECT") {
+    const effectStyle = style as EffectStyle;
+    return styleRecord(effectStyle, "EFFECT", { effects: effectStyle.effects }, ctx);
+  }
+  const gridStyle = style as GridStyle;
+  return styleRecord(gridStyle, "GRID", { layoutGrids: gridStyle.layoutGrids }, ctx);
 }
 
 async function styleRecord(
@@ -411,7 +432,7 @@ async function collectVariables(
   };
 }
 
-function serializeVariableValue(value: VariableValue | undefined, nameById: Map<string, string>): unknown {
+export function serializeVariableValue(value: VariableValue | undefined, nameById: Map<string, string>): unknown {
   if (value === undefined) return undefined;
   if (typeof value === "object" && value !== null && "type" in value && value.type === "VARIABLE_ALIAS") {
     const alias = value as VariableAlias;
@@ -430,7 +451,7 @@ function serializeVariableValue(value: VariableValue | undefined, nameById: Map<
 }
 
 /** Floats from Figma carry rendering noise; rounding keeps diffs meaningful. */
-function roundNumbers(value: unknown): unknown {
+export function roundNumbers(value: unknown): unknown {
   if (typeof value === "number") return round(value, 4);
   if (Array.isArray(value)) return value.map(roundNumbers);
   if (value && typeof value === "object") {

@@ -32,18 +32,22 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({ options, onChange, d
         <Checkbox.Label>Include variables</Checkbox.Label>
       </Checkbox.Root>
 
-      <Checkbox.Root>
-        <Checkbox.Input
-          checked={options.includeSizes}
-          onChange={toggle("includeSizes")}
-          disabled={disabled}
-        />
-        <Checkbox.Label>Include pixel sizes</Checkbox.Label>
-      </Checkbox.Root>
-      <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
-        On by default — without it, a size only appears where a variable happens to be bound, so
-        wrong geometry reads as no change.
-      </Text>
+      {/* Paired with its own hint: at the panel's spacing the sentence would
+          read as belonging to the option below it. */}
+      <Flex direction="column" gap="1">
+        <Checkbox.Root>
+          <Checkbox.Input
+            checked={options.includeSizes}
+            onChange={toggle("includeSizes")}
+            disabled={disabled}
+          />
+          <Checkbox.Label>Include pixel sizes</Checkbox.Label>
+        </Checkbox.Root>
+        <Text size="small" style={{ opacity: 0.6, marginLeft: "1.5rem" }}>
+          On by default — without it, a size only appears where a variable happens to be bound, so
+          wrong geometry reads as no change.
+        </Text>
+      </Flex>
 
       <Flex align="center" gap="2">
         <Text size="small">Structure depth</Text>

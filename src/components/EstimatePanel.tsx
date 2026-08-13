@@ -8,6 +8,8 @@ import { ProbeResult } from "../types.d";
 interface EstimatePanelProps {
   probe: ProbeResult | null;
   probing: boolean;
+  /** What the roots are: components in a library scan, frames in a usage scan. */
+  unit?: "components" | "frames";
 }
 
 /**
@@ -16,7 +18,7 @@ interface EstimatePanelProps {
  * waiting and hundreds of thousands of tokens, and that is worth knowing in
  * advance rather than after.
  */
-export const EstimatePanel: React.FC<EstimatePanelProps> = ({ probe, probing }) => {
+export const EstimatePanel: React.FC<EstimatePanelProps> = ({ probe, probing, unit = "components" }) => {
   const estimate = useMemo(() => (probe ? estimateScan(probe) : null), [probe]);
 
   if (probing && !estimate) {
@@ -40,7 +42,7 @@ export const EstimatePanel: React.FC<EstimatePanelProps> = ({ probe, probing }) 
       }}
     >
       <Text size="small" weight="strong">
-        {estimate.componentCount.toLocaleString()} components ·{" "}
+        {estimate.componentCount.toLocaleString()} {unit} ·{" "}
         {estimate.totalNodes.toLocaleString()} nodes · scan {formatDuration(estimate.millis)}
       </Text>
       {FORMATS.map((descriptor) => {
@@ -52,8 +54,8 @@ export const EstimatePanel: React.FC<EstimatePanelProps> = ({ probe, probing }) 
         );
       })}
       <Text size="small" style={{ color: "var(--figma-color-text-tertiary)" }}>
-        Fitted from {estimate.sampleSize} sampled components against an exact node count for the whole
-        file. Expect a few percent out; more on a library of very uneven components.
+        Fitted from {estimate.sampleSize} sampled {unit} against an exact node count for the whole
+        scope. Expect a few percent out; more when the {unit} vary a lot in size.
       </Text>
     </Flex>
   );

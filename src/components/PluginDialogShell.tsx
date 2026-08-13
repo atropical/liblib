@@ -7,14 +7,29 @@ interface PluginDialogShellProps {
   /** Full-width row pinned above the content columns. */
   header?: React.ReactNode;
   showFooter?: boolean;
+  /**
+   * Changes when the panel switches to a different step. A scan is started at
+   * the bottom of a scrolled options list and its result is a new screen, so
+   * the scroll position from the previous step is never the right one to keep.
+   */
+  scrollKey?: string;
 }
 
 export const PluginDialogShell: React.FC<PluginDialogShellProps> = ({
   children,
   header,
   showFooter = true,
-}) => (
+  scrollKey,
+}) => {
+  const scroller = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    scroller.current?.scrollTo({ top: 0 });
+  }, [scrollKey]);
+
+  return (
   <Flex
+    ref={scroller}
     direction="column"
     gap="4"
     style={{
@@ -38,4 +53,5 @@ export const PluginDialogShell: React.FC<PluginDialogShellProps> = ({
     </Flex>
     {showFooter && <Footer />}
   </Flex>
-);
+  );
+};
