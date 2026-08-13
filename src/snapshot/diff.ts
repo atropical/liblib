@@ -220,6 +220,10 @@ function walk(before: unknown, after: unknown, path: string, changes: FieldChang
   }
 
   if (Array.isArray(before) && Array.isArray(after)) {
+    if (identifiable(before) && identifiable(after)) {
+      walkById(before, after, path, changes);
+      return;
+    }
     // Arrays here are ordered by construction (children, fills, effects), so
     // index-wise comparison is the honest reading of "what moved or changed".
     const length = Math.max(before.length, after.length);
@@ -238,6 +242,58 @@ function walk(before: unknown, after: unknown, path: string, changes: FieldChang
     if (isIgnored(childPath)) continue;
     walk(beforeObject[key], afterObject[key], childPath, changes);
   }
+}
+
+/**
+ * Whether every member of an array carries a node id, which a usage snapshot
+ * writes and a library snapshot does not.
+ */
+function identifiable(items: unknown[]): boolean {
+  return (
+    items.length > 0 &&
+    items.every(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        typeof (item as { nodeId?: unknown }).nodeId === "string",
+    )
+  );
+}
+
+/**
+ * Compares children by node id rather than by position.
+ *
+ * By index, inserting one layer reports every sibling after it as changed —
+ * the diff describes the shift, not the edit. A node id is stable across
+ * exports of the same file, so matching on it says what a person would say:
+ * one layer appeared, and nothing else moved.
+ */
+function walkById(before: unknown[], after: unknown[], path: string, changes: FieldChange[]): void {
+  const idOf = (item: unknown) => (item as { nodeId: string }).nodeId;
+  const baseById = new Map(before.map((item) => [idOf(item), item]));
+  const headIds = new Set(after.map(idOf));
+
+  for (const item of after) {
+    const id = idOf(item);
+    const previous = baseById.get(id);
+    const childPath = `${path}[#${id}]`;
+    // An added layer is reported as itself, not as a diff against nothing —
+    // walking a whole new subtree field by field would bury the fact that the
+    // subtree is new.
+    if (previous === undefined) changes.push({ path: childPath, after: describeNode(item) });
+    else walk(previous, item, childPath, changes);
+  }
+
+  for (const item of before) {
+    const id = idOf(item);
+    if (!headIds.has(id)) changes.push({ path: `${path}[#${id}]`, before: describeNode(item) });
+  }
+}
+
+/** `FRAME "Cards Container"` — enough to recognise a layer that came or went. */
+function describeNode(item: unknown): string {
+  const node = item as { type?: string; name?: string };
+  return `${node.type ?? "node"} "${node.name ?? ""}"`;
 }
 
 /** Compact one-line rendering of a changed value for the Markdown report. */
