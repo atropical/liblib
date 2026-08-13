@@ -132,6 +132,11 @@ read to be navigated back into, and the gap between two layers is a fact about t
 In a usage diff, children are matched by node id rather than by position: inserting one layer reports
 that layer as added, instead of reporting every sibling after it as changed.
 
+When the two exports were written to different schemas, fields this plugin renamed or added between
+them are suppressed and the report says so at the top. Without that, a plugin release reads as a
+change to every node in the file — measured on a real 5 MB route, 1,818 of 1,872 nodes differed
+across `@2` → `@3`, all of it one renamed field, with the 24 real changes buried inside it.
+
 ## Cost estimate before you scan
 
 Every view probes before you commit to a full scan: it counts nodes exactly, serializes a sample of
@@ -277,7 +282,7 @@ src/
 
 ## Status
 
-v2.1.0. Figma Community plugin id `1665168884798434636`.
+v2.1.1. Figma Community plugin id `1665168884798434636`.
 
 ## Licence
 

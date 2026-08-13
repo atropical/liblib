@@ -73,6 +73,11 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
                 {report.summary.renamed} renamed · {report.summary.modified} modified
               </Text>
             </Flex>
+            {(report.notes ?? []).map((note) => (
+              <Text key={note} size="small" style={{ color: "var(--figma-color-text-warning)" }}>
+                {note.replace(/`/g, "")}
+              </Text>
+            ))}
             {report.summary.outOfScope > 0 && (
               <Text size="small" style={{ color: "var(--figma-color-text-secondary)" }}>
                 {report.summary.outOfScope} entr{report.summary.outOfScope === 1 ? "y" : "ies"} in the base

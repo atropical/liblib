@@ -65,7 +65,21 @@ export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffRe
   const headScope = new Set(head.meta.scope.frames);
   const inScope = (frameKey: string) => headScope.size === 0 || headScope.has(frameKey);
 
-  const frames = diffCollection(base.frames, head.frames, inScope);
+  // Across a schema change, a field this plugin renamed differs on every node
+  // that has one — which on a real screen is every node. Reporting that is
+  // reporting our own release, and it buries the handful of changes the
+  // designer actually made.
+  const notes: string[] = [];
+  if (base.schema !== head.schema) {
+    notes.push(
+      `Base was written as \`${base.schema}\`, this scan as \`${head.schema}\`. Fields this plugin ` +
+        `renamed or added between them are suppressed — they would differ on every node and say ` +
+        `nothing about the design: ${Array.from(SCHEMA_VOLATILE_FIELDS).sort().join(", ")}.`,
+    );
+  }
+  const volatileFields = base.schema !== head.schema ? SCHEMA_VOLATILE_FIELDS : undefined;
+
+  const frames = diffCollection(base.frames, head.frames, inScope, volatileFields);
   const components = diffCollection(base.components, head.components);
   const styles = diffCollection(base.styles, head.styles);
   const variables = diffCollection(base.variables, head.variables);
@@ -93,6 +107,7 @@ export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffRe
       variablesChanged: variables.length,
       deviationsChanged: deviations.length,
     },
+    notes,
     frames,
     components,
     styles,
@@ -100,6 +115,28 @@ export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffRe
     deviations,
   };
 }
+
+/**
+ * Fields this plugin has renamed or introduced across usage schema versions.
+ *
+ * Suppressed only when a diff spans two schemas. Within one schema they are
+ * ordinary content and a change to any of them is a real change — `position`
+ * moving is a layer moving.
+ */
+const SCHEMA_VOLATILE_FIELDS = new Set([
+  // @2 -> @3: renamed, so both spellings differ on every node that has one.
+  "offset",
+  "position",
+  "expected",
+  "actual",
+  "tokenValue",
+  "rendered",
+  // @1 -> @2: added, so they are absent on one side throughout.
+  "overrides",
+  "bindingMismatch",
+  "vectorShapes",
+  "omittedChildren",
+]);
 
 /**
  * Deviations have no identity of their own — they are findings, not records —
@@ -123,6 +160,8 @@ function diffCollection<T extends Identified>(
   headItems: T[],
   /** Whether a key the head no longer has was even in the head's scope. */
   inScope: (key: string) => boolean = () => true,
+  /** Field names to leave out of the change list entirely. */
+  volatileFields?: ReadonlySet<string>,
 ): DiffEntry[] {
   const baseByKey = indexBy(baseItems);
   const headByKey = indexBy(headItems);
@@ -136,7 +175,11 @@ function diffCollection<T extends Identified>(
     }
     if (baseItem.hash === headItem.hash) continue;
 
-    const changes = diffRecords(baseItem, headItem);
+    const changes = diffRecords(baseItem, headItem, volatileFields);
+    // Its hash differs, but everything that differs was our own field rename.
+    // Reporting it as modified with nothing to show would be the loudest lie
+    // in the report.
+    if (volatileFields && changes.length === 0) continue;
     // A component's root node carries the same name, so a plain rename shows up
     // on both paths. Anything beyond those two is a real change.
     const renamedOnly =
@@ -192,15 +235,31 @@ function isIgnored(path: string): boolean {
   return IGNORED_FIELDS.has(path) || path === "nodeId" || path.endsWith(".nodeId");
 }
 
-function diffRecords(base: Identified, head: Identified): FieldChange[] {
+function diffRecords(
+  base: Identified,
+  head: Identified,
+  volatileFields?: ReadonlySet<string>,
+): FieldChange[] {
   const changes: FieldChange[] = [];
-  walk(base as unknown, head as unknown, "", changes);
+  walk(base as unknown, head as unknown, "", changes, volatileFields);
   return changes.filter((change) => !isIgnored(change.path)).sort(byField((change) => change.path));
+}
+
+/** The last named field in a path: `structure.props.position` -> `position`. */
+function fieldOf(path: string): string {
+  const last = path.split(".").pop() ?? path;
+  return last.replace(/\[[^\]]*\]$/, "");
 }
 
 const MAX_CHANGES = 200;
 
-function walk(before: unknown, after: unknown, path: string, changes: FieldChange[]): void {
+function walk(
+  before: unknown,
+  after: unknown,
+  path: string,
+  changes: FieldChange[],
+  volatileFields?: ReadonlySet<string>,
+): void {
   if (changes.length >= MAX_CHANGES) return;
 
   const leafPath = path || "(root)";
@@ -221,14 +280,14 @@ function walk(before: unknown, after: unknown, path: string, changes: FieldChang
 
   if (Array.isArray(before) && Array.isArray(after)) {
     if (identifiable(before) && identifiable(after)) {
-      walkById(before, after, path, changes);
+      walkById(before, after, path, changes, volatileFields);
       return;
     }
     // Arrays here are ordered by construction (children, fills, effects), so
     // index-wise comparison is the honest reading of "what moved or changed".
     const length = Math.max(before.length, after.length);
     for (let i = 0; i < length; i++) {
-      walk(before[i], after[i], `${path}[${i}]`, changes);
+      walk(before[i], after[i], `${path}[${i}]`, changes, volatileFields);
     }
     return;
   }
@@ -240,7 +299,8 @@ function walk(before: unknown, after: unknown, path: string, changes: FieldChang
     const childPath = path ? `${path}.${key}` : key;
     // Skip before recursing, so ignored fields never eat the change budget.
     if (isIgnored(childPath)) continue;
-    walk(beforeObject[key], afterObject[key], childPath, changes);
+    if (volatileFields?.has(fieldOf(childPath))) continue;
+    walk(beforeObject[key], afterObject[key], childPath, changes, volatileFields);
   }
 }
 
@@ -268,7 +328,13 @@ function identifiable(items: unknown[]): boolean {
  * exports of the same file, so matching on it says what a person would say:
  * one layer appeared, and nothing else moved.
  */
-function walkById(before: unknown[], after: unknown[], path: string, changes: FieldChange[]): void {
+function walkById(
+  before: unknown[],
+  after: unknown[],
+  path: string,
+  changes: FieldChange[],
+  volatileFields?: ReadonlySet<string>,
+): void {
   const idOf = (item: unknown) => (item as { nodeId: string }).nodeId;
   const baseById = new Map(before.map((item) => [idOf(item), item]));
   const headIds = new Set(after.map(idOf));
@@ -281,7 +347,7 @@ function walkById(before: unknown[], after: unknown[], path: string, changes: Fi
     // walking a whole new subtree field by field would bury the fact that the
     // subtree is new.
     if (previous === undefined) changes.push({ path: childPath, after: describeNode(item) });
-    else walk(previous, item, childPath, changes);
+    else walk(previous, item, childPath, changes, volatileFields);
   }
 
   for (const item of before) {

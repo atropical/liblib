@@ -267,6 +267,9 @@ export function usageDiffToMarkdown(report: UsageDiffReport): string {
   );
   lines.push("");
 
+  // Above the numbers, because it is a statement about whether to trust them.
+  for (const note of report.notes ?? []) lines.push(`> ${note}`, "");
+
   const total =
     report.frames.length +
     report.components.length +
