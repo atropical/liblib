@@ -122,11 +122,15 @@ read to be navigated back into, and the gap between two layers is a fact about t
 | `components` | One per library component used: publish key, set key and name, whether it is remote, the published property definitions, every variant combination it is used in (`usedAs`), instance count, and which frames it appears in |
 | `styles`, `variables` | Only the ones these frames actually reference — a consuming file has no local ones to list. Variable alias chains are followed to the end, so a screen bound to `Surface/Card` also carries what `Surface/Card` resolves to |
 | `deviations` | Local components, missing main components, and fills, strokes, radii and spacing set by hand where nothing is bound. Each carries `intentional`, set from the layer name marker or plugin data |
-| `props.offset` | `[x, y]` relative to the parent, on every node but the frame root. Most spacing in a design is a gap between siblings, and a gap is only recoverable from where they sit |
-| `props.bindingMismatch` | Where a node claims a token and renders another number — a detached override, a stale binding, or a token that moved. Both values are recorded, because the name alone cannot say which |
+| `props.position` | `[x, y]` relative to the parent, on every node but the frame root. Most spacing in a design is a gap between siblings, and a gap is only recoverable from where they sit. Named `position` rather than `offset`, which an effect already uses for its shadow |
+| `props.bindingMismatch` | Where a node claims a token and renders another number — a detached override, a stale binding, or a token that moved. Both `tokenValue` and `rendered` are recorded, because the name alone cannot say which |
 | `props.overrides` | The value behind each override: what a label now reads, which component was swapped in. `overriddenFields` names the fields; this says what they were set to |
 | `props.vectorShapes` | A count of outline shapes replaced by it. Counted rather than dropped, so "there is artwork here" survives |
 | `meta.scope` | The mode and the exact frame list this export covered, which is what lets the diff tell "removed" from "not covered" |
+| `meta.schema` | The version to gate on. `meta.pluginVersion` records which build wrote the file and is provenance, not a contract — the two can disagree when a build predates a release |
+
+In a usage diff, children are matched by node id rather than by position: inserting one layer reports
+that layer as added, instead of reporting every sibling after it as changed.
 
 ## Cost estimate before you scan
 
@@ -273,7 +277,7 @@ src/
 
 ## Status
 
-v2.0.0. Figma Community plugin id `1665168884798434636`.
+v2.1.0. Figma Community plugin id `1665168884798434636`.
 
 ## Licence
 

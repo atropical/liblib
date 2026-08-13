@@ -82,7 +82,9 @@ export async function serializeNode(
   // whole surface, which moves whenever someone tidies the page and means
   // nothing about the design.
   if (ctx.includePositions && level > 0 && "x" in node) {
-    serialized.props.offset = [round(node.x), round(node.y)];
+    // `position`, not `offset`: an effect's shadow offset is already called
+    // that, and a reader searching for one finds the other.
+    serialized.props.position = [round(node.x), round(node.y)];
   }
 
   if ("children" in node && node.children.length > 0) {
@@ -553,11 +555,13 @@ async function bindingMismatches(
     if (typeof expected !== "number") continue;
     if (round(expected) === round(actual)) continue;
 
+    // Named for what they are rather than expected/actual: in a tabular row
+    // the header can be far from the values, and `24,20` reads either way.
     found.push({
       field,
       token: await variableName(binding as VariableAlias, ctx),
-      expected: round(expected),
-      actual: round(actual),
+      tokenValue: round(expected),
+      rendered: round(actual),
     });
   }
 

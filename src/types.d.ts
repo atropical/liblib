@@ -13,15 +13,18 @@ export const LEGACY_SNAPSHOT_SCHEMAS = ["help-an-agent/design-system-snapshot@1"
  * components' internals stay in the library snapshot, and the two join on the
  * component publish key.
  */
-export const USAGE_SCHEMA = "liblib/usage-snapshot@2";
+export const USAGE_SCHEMA = "liblib/usage-snapshot@3";
 
 /**
- * Usage schemas still accepted as a diff base. `@2` added per-node positions,
- * kept nested instances that `@1` pruned, and started summarising outline
- * shapes — all additive, so an older export still compares cleanly enough to be
- * worth more than refusing it.
+ * Usage schemas still accepted as a diff base.
+ *
+ * `@2` added per-node positions, kept nested instances that `@1` pruned, and
+ * started summarising outline shapes. `@3` renamed two fields that read as
+ * something else — `offset` to `position`, and a mismatch's `expected`/`actual`
+ * to `tokenValue`/`rendered`. Older exports still compare well enough to be
+ * worth more than refusing them; the fields that moved simply read as changed.
  */
-export const LEGACY_USAGE_SCHEMAS = ["liblib/usage-snapshot@1"];
+export const LEGACY_USAGE_SCHEMAS = ["liblib/usage-snapshot@1", "liblib/usage-snapshot@2"];
 
 export enum PluginCommands {
   SNAPSHOT = "snapshot",
