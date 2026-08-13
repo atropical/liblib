@@ -1,7 +1,7 @@
 TAGLINE:
 Design systems in a form agents can actually read. Snapshot your library, snapshot the designs that use it, and let `git diff` tell your agent what changed.
 
-RELEASE NOTES (1.3.0):
+RELEASE NOTES (2.0.0):
 🆕 **Two new commands — Export Usage Snapshot… and Diff Against Usage Snapshot….** For design files that *use* a library, where the old snapshot came out empty. Pick frames by selection, page, or whole file; a section and the frames inside it export identically, and a narrower export reads as *not covered* rather than deleted.
 🧩 **Every instance names what it is.** The component behind it, the exact variant it uses, what its overrides were set to — the new label text, the swapped icon — and its node id, nested ones included.
 📐 **Layout you can read without opening Figma.** Each layer carries its position relative to its parent, so gaps between siblings come from the file rather than from measuring. Bound tokens are checked against what actually renders, and disagreements flagged.

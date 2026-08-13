@@ -273,7 +273,7 @@ src/
 
 ## Status
 
-v1.3.0. Figma Community plugin id `1665168884798434636`.
+v2.0.0. Figma Community plugin id `1665168884798434636`.
 
 ## Licence
 
