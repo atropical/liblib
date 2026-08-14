@@ -17,6 +17,7 @@ export type { ReadOptions, ReadResult, SnapshotKind } from "./read";
 
 export {
   components,
+  counts,
   deviations,
   find,
   frames,
@@ -25,6 +26,7 @@ export {
   tree,
 } from "./accessors";
 export type {
+  Counts,
   DeviationOptions,
   FindOptions,
   FrameSummary,

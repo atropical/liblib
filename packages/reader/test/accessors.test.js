@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   components,
+  counts,
   deviations,
   find,
   frames,
   mismatches,
+  readLibrary,
   readUsage,
   resolveFrame,
   tree,
@@ -192,5 +194,48 @@ test("accessors do not mutate the snapshot they are given", () => {
   tree(usage, "Checkout / Order Summary");
   mismatches(usage);
   find(usage, "a");
+  assert.equal(JSON.stringify(usage), before);
+});
+
+/** The counts every accessor would produce the long way, for one snapshot. */
+function theLongWay(snapshot) {
+  return {
+    frames: frames(snapshot).length,
+    components: components(snapshot).length,
+    styles: snapshot.styles?.length ?? 0,
+    variables: snapshot.variables?.length ?? 0,
+    variableCollections: snapshot.variableCollections?.length ?? 0,
+    deviations: deviations(snapshot).length,
+    intentionalDeviations:
+      deviations(snapshot, { includeIntentional: true }).length - deviations(snapshot).length,
+    mismatches: mismatches(snapshot).length,
+    layers: frames(snapshot).reduce((total, frame) => total + frame.layers, 0),
+  };
+}
+
+test("counts() agrees with the accessors it summarises", () => {
+  assert.deepEqual(counts(usage), theLongWay(usage));
+  // Not vacuously: the snapshot has something in every bucket.
+  for (const [field, value] of Object.entries(counts(usage))) {
+    assert.ok(value > 0, `${field} is 0, so this proves nothing`);
+  }
+});
+
+test("counts() agrees on the legacy `@2` snapshot too", () => {
+  const legacy = readUsage(fixture("usage-legacy2.toon")).data;
+  assert.deepEqual(counts(legacy), theLongWay(legacy));
+});
+
+test("counts() refuses a library snapshot, like the reader does", () => {
+  const library = readLibrary(fixture("library.toon")).data;
+  const error = thrown(() => counts(library));
+  assert.equal(error.name, "SchemaError");
+  assert.match(error.message, /library snapshot/);
+  assert.match(error.message, /usage snapshot/);
+});
+
+test("counts() does not mutate the snapshot it is given", () => {
+  const before = JSON.stringify(usage);
+  counts(usage);
   assert.equal(JSON.stringify(usage), before);
 });

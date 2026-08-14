@@ -181,11 +181,7 @@ export function mismatches(usage: UsageSnapshot): Mismatch[] {
   for (const frame of [...(usage.frames ?? [])].sort(byKey)) {
     const nodes = walkAll(frame.structure, []);
     for (const { node, path } of nodes) {
-      const found = node.props?.bindingMismatch;
-      if (!Array.isArray(found)) continue;
-      for (const raw of found) {
-        if (!raw || typeof raw !== "object") continue;
-        const record = raw as Record<string, unknown>;
+      for (const record of mismatchesOn(node)) {
         const entry: Mismatch = {
           frame: frame.key,
           path: path.join(PATH_SEPARATOR),
@@ -220,6 +216,86 @@ export function deviations(usage: UsageSnapshot, opts: DeviationOptions = {}): D
   return kept
     .map((record) => ({ ...record, path: joinPath(record.path, record.name) }))
     .sort(byString((record) => `${record.frame}\u0000${record.path}\u0000${record.kind}`));
+}
+
+/**
+ * How much of everything is in a usage snapshot, in one pass.
+ *
+ * It answers the same questions `frames`, `deviations` and `mismatches` answer,
+ * for callers that want the size of the answer rather than the answer — the
+ * `liblib info` header being the first of them. Those accessors each walk every
+ * node and build every record on the way; asking three of them for three
+ * numbers walks a large export three times and throws the records away.
+ *
+ * Every count here is defined by the same helpers the accessors use, not by a
+ * second traversal with its own rules: `layers` counts what `frames()` counts,
+ * `mismatches` counts what `mismatches()` returns, and the deviation split is
+ * the one `deviations()` makes. The tests assert that equivalence, because a
+ * counter that quietly disagrees with the list it summarises is worse than no
+ * counter.
+ */
+export interface Counts {
+  frames: number;
+  components: number;
+  styles: number;
+  variables: number;
+  variableCollections: number;
+  /** Deviations still open — what `deviations()` returns by default. */
+  deviations: number;
+  /** Deviations the designer marked deliberate, which `deviations()` hides. */
+  intentionalDeviations: number;
+  mismatches: number;
+  /** Layers across every frame, each frame not counting itself. */
+  layers: number;
+}
+
+export function counts(usage: UsageSnapshot): Counts {
+  const frameRecords = requireUsage(usage);
+  const all = usage.deviations ?? [];
+  let intentionalDeviations = 0;
+  for (const record of all) if (record.intentional) intentionalDeviations += 1;
+
+  let layers = 0;
+  let mismatched = 0;
+  for (const frame of frameRecords) {
+    eachNode(frame.structure, [], (node, path) => {
+      // `frames()` counts a frame's descendants, not the frame itself.
+      if (path.length > 1) layers += 1;
+      mismatched += mismatchesOn(node).length;
+    });
+  }
+
+  return {
+    frames: frameRecords.length,
+    components: usage.components?.length ?? 0,
+    styles: usage.styles?.length ?? 0,
+    variables: usage.variables?.length ?? 0,
+    variableCollections: usage.variableCollections?.length ?? 0,
+    deviations: all.length - intentionalDeviations,
+    intentionalDeviations,
+    mismatches: mismatched,
+    layers,
+  };
+}
+
+/**
+ * `counts` is usage-only, like every accessor above it: a library snapshot has
+ * no frames, no layers, no deviations and no mismatches, so more than half of
+ * the record would be a zero that reads as a finding. `read` already knows
+ * which kind a file is; this catches a library snapshot handed straight to the
+ * API and says so, rather than reporting a design system as a clean design.
+ */
+function requireUsage(usage: UsageSnapshot): FrameRecord[] {
+  if (!Array.isArray(usage?.frames)) {
+    const schema = (usage as { schema?: unknown } | undefined)?.schema;
+    throw new SchemaError(
+      `That is a library snapshot${typeof schema === "string" ? ` (\`${schema}\`)` : ""} — the ` +
+        `design system itself, which has no frames to count. \`counts\` needs a usage snapshot, ` +
+        `exported from a design file that consumes the library.`,
+      typeof schema === "string" ? { schema } : undefined,
+    );
+  }
+  return usage.frames;
 }
 
 /** `Order Summary` + `Totals` -> `Order Summary / Totals`. A frame-level deviation has no ancestors. */
@@ -335,16 +411,45 @@ function matcher(query: string | RegExp): (value: string) => boolean {
   return (value) => value.toLowerCase().includes(needle);
 }
 
+/**
+ * The one traversal every accessor that reads a frame's structure is built on.
+ *
+ * Pre-order, hidden layers included, each node visited with the path that
+ * reaches it — the caller decides what to keep. `walkAll` collects, `counts`
+ * only tallies; sharing the walk is what keeps them from drifting apart on
+ * which nodes exist.
+ */
+function eachNode(
+  node: SerializedNode | undefined,
+  ancestors: string[],
+  visit: (node: SerializedNode, path: string[]) => void,
+): void {
+  if (!node) return;
+  const path = [...ancestors, node.name];
+  visit(node, path);
+  for (const child of node.children ?? []) eachNode(child, path, visit);
+}
+
 /** Every node in a subtree, pre-order, each with the path that reaches it. */
 function walkAll(
   node: SerializedNode | undefined,
   ancestors: string[],
 ): { node: SerializedNode; path: string[] }[] {
-  if (!node) return [];
-  const path = [...ancestors, node.name];
-  const out = [{ node, path }];
-  for (const child of node.children ?? []) out.push(...walkAll(child, path));
+  const out: { node: SerializedNode; path: string[] }[] = [];
+  eachNode(node, ancestors, (found, path) => out.push({ node: found, path }));
   return out;
+}
+
+/**
+ * The binding mismatches recorded on one node — the single definition of what
+ * counts as one, so `mismatches()` and `counts()` cannot disagree about it.
+ */
+function mismatchesOn(node: SerializedNode): Record<string, unknown>[] {
+  const found = node.props?.bindingMismatch;
+  if (!Array.isArray(found)) return [];
+  return found.filter(
+    (raw): raw is Record<string, unknown> => Boolean(raw) && typeof raw === "object",
+  );
 }
 
 function countLayers(node: SerializedNode | undefined): number {

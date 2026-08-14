@@ -11,7 +11,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { components, deviations, find, frames, mismatches, tree } from "./accessors";
+import { components, counts, deviations, find, frames, mismatches, tree } from "./accessors";
 import type { TreeNode } from "./accessors";
 import { diff } from "./diff";
 import { SchemaError } from "./errors";
@@ -350,16 +350,18 @@ function describe(result: ReturnType<typeof read>, file: string): Info {
         frames: scope.frames?.length ?? 0,
       };
     }
+    // One walk of the frame trees, not one per number. The printed keys are
+    // spelled out rather than spread, so `--json` keeps the shape it has had.
+    const total = counts(usage);
     info.counts = {
-      frames: usage.frames?.length ?? 0,
-      components: usage.components?.length ?? 0,
-      styles: usage.styles?.length ?? 0,
-      variables: usage.variables?.length ?? 0,
-      variableCollections: usage.variableCollections?.length ?? 0,
-      deviations: deviations(usage).length,
-      deviationsIntentional: deviations(usage, { includeIntentional: true }).length -
-        deviations(usage).length,
-      mismatches: mismatches(usage).length,
+      frames: total.frames,
+      components: total.components,
+      styles: total.styles,
+      variables: total.variables,
+      variableCollections: total.variableCollections,
+      deviations: total.deviations,
+      deviationsIntentional: total.intentionalDeviations,
+      mismatches: total.mismatches,
     };
   } else {
     const library = result.data as Snapshot;
