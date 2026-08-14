@@ -5,6 +5,29 @@
   "type": "module",
   "license": "GPL-3.0-only",
   "author": "Atropical AS",
+  "keywords": [
+    "figma",
+    "design system",
+    "design tokens",
+    "toon",
+    "snapshot",
+    "diff",
+    "agents",
+    "llm"
+  ],
+  "homepage": "https://github.com/atropical/liblib/tree/main/packages/reader#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atropical/liblib.git",
+    "directory": "packages/reader"
+  },
+  "bugs": "https://github.com/atropical/liblib/issues",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -18,9 +41,10 @@
   "bin": {
     "liblib": "./dist/cli.js"
   },
-  "files": ["dist", "SKILL.md", "README.md"],
+  "files": ["dist", "SKILL.md", "README.md", "LICENSE"],
   "scripts": {
     "build": "node scripts/build.mjs",
+    "prepublishOnly": "npm run build && npm run types && npm test",
     "types": "tsc -p tsconfig.json && tsc ../core/src/types.ts --ignoreConfig --declaration --emitDeclarationOnly --target esnext --module esnext --outDir dist && node scripts/finish-types.mjs",
     "tsc": "tsc -p tsconfig.json --noEmit --declaration false --emitDeclarationOnly false",
     "fixtures": "esbuild scripts/make-fixtures.ts --bundle --platform=node --format=esm --external:@toon-format/toon --outfile=node_modules/.cache/make-fixtures.mjs && node node_modules/.cache/make-fixtures.mjs",
