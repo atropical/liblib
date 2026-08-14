@@ -18,10 +18,8 @@ Both are TOON (or JSON) and both name their schema on the first line. `liblib` r
 
 ## When to reach for this
 
-- **Before opening a `.toon` or `.json` snapshot by hand.** The format has count-form lists, quoted
-  keys containing colons, inline lists with commas inside values, and tabular sections. Hand-rolled
-  parsing of it does not crash — it returns empty lists, which look like real answers. Every read
-  path here throws `SchemaError` instead of returning a plausible empty.
+- **Before opening a `.toon` or `.json` snapshot by hand.** Parsing it yourself does not crash — it
+  returns empty lists, which look like real answers. Every read path here throws instead.
 - **Before guessing which component or variant an instance uses.** `tree` says, per layer.
 - **Before inferring spacing, a colour, or a token from a screenshot.** The snapshot has the
   bound variable and the rendered value, and `mismatches` lists every place the two disagree.
