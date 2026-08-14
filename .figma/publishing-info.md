@@ -1,6 +1,10 @@
 TAGLINE:
 Design systems in a form agents can actually read — the library, and the designs using it.
 
+RELEASE NOTES (2.2.0):
+📖 **Your agent can now read the exports properly.** `npx @atropical/liblib` answers questions about a snapshot — which variant a layer uses, where a value doesn't match its token, what changed since the last export.
+🔗 **Every export says how to read it**, so an agent that opens the file works it out on its own.
+
 RELEASE NOTES (2.1.1):
 🔇 **A diff across a plugin update no longer reads as a change to every layer.** When the base export was written to an older schema, fields renamed or added since are suppressed and the report says so at the top. Measured on a real 5 MB route, this was 1,818 of 1,872 nodes reported changed — all one renamed field, with the 24 genuine changes buried inside.
 

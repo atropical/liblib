@@ -154,7 +154,7 @@ packages/
 
 ## Status
 
-v2.1.1. Figma Community plugin id `1665168884798434636`.
+v2.2.0. Figma Community plugin id `1665168884798434636`.
 
 ## Licence
 
