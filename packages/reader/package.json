@@ -1,6 +1,6 @@
 {
   "name": "@atropical/liblib",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typed reader for LibLib design-system and usage snapshots, with a schema guard that throws instead of returning plausible empties.",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -41,7 +41,12 @@
   "bin": {
     "liblib": "./dist/cli.js"
   },
-  "files": ["dist", "SKILL.md", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepublishOnly": "npm run build && npm run types && npm test",
