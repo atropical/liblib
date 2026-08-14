@@ -24,7 +24,6 @@
   "license": "GPL-3.0-only",
   "dependencies": {
     "@atropical/liblib-core": "*",
-    "@toon-format/toon": "^4.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
