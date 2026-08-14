@@ -39,6 +39,7 @@ Agents can already read your components — Figma's MCP server hands them contex
 **Screens Without the Bulk:** Instances stop at their boundary and artwork outlines collapse to a count, so a screen reads at a fraction of its raw size
 **Three Formats, Costed:** TOON (~40% cheaper than JSON, losslessly convertible back), Markdown to read, JSON as a baseline — with an estimated token range and predicted scan time before you commit to a scan
 **Resolved Tokens, Not Raw Ids:** Bound variables come through as `Collection/Variable`, including those bound inside a style's shadow
+**A Reader for Your Agent:** `npx @atropical/liblib` answers questions about an export instead of making your agent parse it — and one command teaches the agent when to use it
 **Fully Offline:** No network requests at all. Nothing leaves Figma
 
 † Markdown is a rendering, not a source: cheapest to read, but it cannot be loaded back as a diff base. Use TOON or JSON for anything you intend to diff against.
@@ -51,6 +52,15 @@ Agents can already read your components — Figma's MCP server hands them contex
 The two join on the component publish key: the usage file says which component and variant a frame uses, the library file says what that component is. Neither repeats the other.
 
 **To compare** — run either **Diff Against…** command and pick a `.json` or `.toon` the plugin wrote earlier. The current file is rescanned and the report shows old value against new.
+
+**On the code side** — your agent reads the committed file with the free companion package:
+
+```
+npx @atropical/liblib info design.usage.toon
+npx @atropical/liblib init-skill
+```
+
+The first says what is in an export. The second teaches the agent when to reach for it, so you only run it once.
 
 Works in Dev Mode too, in the handoff panel.
 
