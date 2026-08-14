@@ -31,7 +31,9 @@ mismatches(data);                    // every value that does not render as its 
 deviations(data);                    // where the design steps outside the library
 ```
 
-Also `read`, `readLibrary`, `components`, `find`, `resolveFrame` and `diff`. Every accessor takes
+Also `read`, `readLibrary`, `components`, `counts`, `find`, `resolveFrame` and `diff`. `counts`
+gives the size of every one of those answers in a single walk, for when the number is the whole
+question. Every accessor takes
 the `data`, is pure, and returns records in a fixed order. Paths read `Frame / Group / Layer`
 everywhere.
 
