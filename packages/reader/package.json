@@ -55,6 +55,9 @@
     "@toon-format/toon": "^4.1.0"
   },
   "devDependencies": {
-    "@atropical/liblib-core": "*"
+    "@atropical/liblib-core": "*",
+    "@types/node": "^26.0.1",
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3"
   }
 }
