@@ -1,0 +1,62 @@
+components[1]:
+  - description: Primary action.
+    documentationLinks[1]: "https://example.com/button"
+    hash: c9a9801b023e3d79
+    key: btnkey00000000000000000000000000000000001
+    name: Button / Primary
+    nodeId: "1:1"
+    path: Components / Buttons
+    properties:
+      "Icon#12:3":
+        defaultValue: abc
+        type: INSTANCE_SWAP
+      Size:
+        defaultValue: Medium
+        type: VARIANT
+        variantOptions[2]: Large,Medium
+    structure:
+      name: Button / Primary
+      type: COMPONENT_SET
+      nodeId: "1:1"
+      props:
+        itemSpacing: 16
+    type: COMPONENT_SET
+    variants:
+      "Size=Large, State=Default":
+        hash: dac0a15e0d5a58e8
+        key: v1
+        nodeId: "1:2"
+        structure:
+          name: Size=Large
+          type: COMPONENT
+          nodeId: "1:2"
+          props:
+            itemSpacing: 12
+meta:
+  counts:
+    components: 1
+    styles: 1
+    variables: 1
+  fileName: Acme Design System
+  generatedAt: "2026-08-01T09:00:00.000Z"
+  pluginVersion: 2.1.1
+schema: liblib/design-system-snapshot@1
+styles[1]{description,hash,key,name,type,value}:
+  "",a59f2165a37102e7,style0001,Colour / Brand / Primary,PAINT,"#0d99ff"
+variableCollections[1]:
+  - defaultMode: Light
+    key: col1
+    modes[2]: Light,Dark
+    name: Primitives
+variables[1]:
+  - codeSyntax:
+    collection: Primitives
+    description: ""
+    hash: 8502b90d3bf4199b
+    key: var1
+    name: spacing/md
+    resolvedType: FLOAT
+    scopes[1]: GAP
+    valuesByMode:
+      Dark: 16
+      Light: 16

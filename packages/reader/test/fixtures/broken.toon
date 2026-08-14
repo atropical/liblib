@@ -1,0 +1,3 @@
+schema: liblib/usage-snapshot@3
+frames[3]{key,name}:
+  a,b

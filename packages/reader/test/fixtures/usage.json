@@ -1,0 +1,296 @@
+{
+  "components": [
+    {
+      "frames": [
+        "Checkout / Order Summary"
+      ],
+      "hash": "ccdc00096f415f4b",
+      "instanceCount": 7,
+      "key": "btnkey00000000000000000000000000000000001",
+      "name": "Button / Primary",
+      "properties": {
+        "Icon#12:3": {
+          "defaultValue": "abc",
+          "type": "INSTANCE_SWAP"
+        },
+        "Size": {
+          "defaultValue": "Medium",
+          "type": "VARIANT",
+          "variantOptions": [
+            "Large",
+            "Medium"
+          ]
+        }
+      },
+      "remote": true,
+      "setKey": "btnset0000000000000000000000000000000001",
+      "setName": "Button",
+      "usedAs": [
+        "Size=Large, State=Default",
+        "Size=Medium, State=Hover"
+      ]
+    },
+    {
+      "frames": [
+        "Checkout / Order Summary"
+      ],
+      "hash": "47bc37b7b63c0f71",
+      "instanceCount": 3,
+      "key": "chipkey0000000000000000000000000000000001",
+      "name": "Chip / Price",
+      "remote": true,
+      "usedAs": [
+        "Size=Small, Intent=Main"
+      ]
+    }
+  ],
+  "deviations": [
+    {
+      "detail": "itemSpacing 20 is not a token value.",
+      "frame": "Checkout / Order Summary",
+      "intentional": false,
+      "kind": "hardcoded-spacing",
+      "name": "Totals",
+      "nodeId": "10:2",
+      "path": "Order Summary",
+      "type": "FRAME"
+    },
+    {
+      "detail": "Instance of `Local Note`, defined in this file rather than a library.",
+      "frame": "Checkout / Receipt",
+      "intentional": true,
+      "kind": "local-component",
+      "name": "Thanks",
+      "nodeId": "20:2",
+      "path": "Receipt",
+      "type": "TEXT"
+    }
+  ],
+  "frames": [
+    {
+      "hash": "ad0779833c2f680d",
+      "key": "Checkout / Order Summary",
+      "name": "Order Summary",
+      "nodeId": "10:1",
+      "page": "Checkout",
+      "size": [
+        1440,
+        900
+      ],
+      "structure": {
+        "name": "Order Summary",
+        "type": "FRAME",
+        "nodeId": "10:1",
+        "props": {
+          "cornerRadius": 8,
+          "itemSpacing": 16,
+          "layoutMode": "VERTICAL"
+        },
+        "children": [
+          {
+            "name": "Totals",
+            "type": "FRAME",
+            "nodeId": "10:2",
+            "props": {
+              "bindingMismatch": [
+                {
+                  "field": "itemSpacing",
+                  "rendered": 20,
+                  "token": "spacing/md",
+                  "tokenValue": 16
+                }
+              ],
+              "boundVariables": {
+                "itemSpacing": "spacing/md"
+              },
+              "itemSpacing": 20,
+              "position": [
+                24,
+                96
+              ]
+            },
+            "children": [
+              {
+                "name": "Line item",
+                "type": "TEXT",
+                "nodeId": "10:3",
+                "props": {
+                  "characters": "Subtotal, before tax",
+                  "position": [
+                    0,
+                    0
+                  ]
+                }
+              },
+              {
+                "name": "Price Chip",
+                "type": "INSTANCE",
+                "nodeId": "10:4",
+                "props": {
+                  "componentProperties": {
+                    "Icon#12:3": {
+                      "value": "abc"
+                    },
+                    "Size": {
+                      "value": "Small"
+                    }
+                  },
+                  "mainComponent": {
+                    "key": "chipkey0000000000000000000000000000000001",
+                    "name": "Chip / Price"
+                  },
+                  "position": [
+                    0,
+                    32
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Legacy Banner",
+            "type": "GROUP",
+            "nodeId": "10:5",
+            "hidden": true,
+            "props": {
+              "position": [
+                24,
+                320
+              ]
+            },
+            "children": [
+              {
+                "name": "Old promo copy",
+                "type": "TEXT",
+                "nodeId": "10:6",
+                "props": {
+                  "characters": "Ends Friday, midnight"
+                }
+              }
+            ]
+          },
+          {
+            "name": "Confirm",
+            "type": "INSTANCE",
+            "nodeId": "10:7",
+            "props": {
+              "componentProperties": {
+                "Size": {
+                  "value": "Large"
+                }
+              },
+              "mainComponent": {
+                "key": "btnkey00000000000000000000000000000000001",
+                "name": "Button / Primary"
+              },
+              "position": [
+                24,
+                420
+              ]
+            }
+          }
+        ]
+      },
+      "type": "FRAME"
+    },
+    {
+      "hash": "9fd547131bdad735",
+      "key": "Checkout / Receipt",
+      "name": "Receipt",
+      "nodeId": "20:1",
+      "page": "Checkout",
+      "size": [
+        1440,
+        640
+      ],
+      "structure": {
+        "name": "Receipt",
+        "type": "FRAME",
+        "nodeId": "20:1",
+        "props": {
+          "layoutMode": "VERTICAL"
+        },
+        "children": [
+          {
+            "name": "Thanks",
+            "type": "TEXT",
+            "nodeId": "20:2",
+            "props": {
+              "characters": "Thank you"
+            }
+          }
+        ]
+      },
+      "type": "FRAME"
+    }
+  ],
+  "meta": {
+    "counts": {
+      "components": 2,
+      "deviations": 2,
+      "frames": 2
+    },
+    "fileKey": "abc123",
+    "fileName": "Acme Checkout",
+    "generatedAt": "2026-08-01T10:00:00.000Z",
+    "pluginVersion": "2.1.1",
+    "scope": {
+      "frames": [
+        "Checkout / Order Summary",
+        "Checkout / Receipt"
+      ],
+      "mode": "selection",
+      "pages": [
+        "Checkout"
+      ]
+    }
+  },
+  "schema": "liblib/usage-snapshot@3",
+  "styles": [
+    {
+      "description": "",
+      "hash": "a59f2165a37102e7",
+      "key": "style0001",
+      "name": "Colour / Brand / Primary",
+      "type": "PAINT",
+      "value": "#0d99ff"
+    },
+    {
+      "description": "",
+      "hash": "3397b22a0973e210",
+      "key": "style0002",
+      "name": "Text / Body",
+      "type": "TEXT",
+      "value": "Inter 14/20"
+    }
+  ],
+  "variableCollections": [
+    {
+      "defaultMode": "Light",
+      "key": "col1",
+      "modes": [
+        "Light",
+        "Dark"
+      ],
+      "name": "Primitives"
+    }
+  ],
+  "variables": [
+    {
+      "codeSyntax": {},
+      "collection": "Primitives",
+      "description": "",
+      "hash": "8502b90d3bf4199b",
+      "key": "var1",
+      "name": "spacing/md",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "valuesByMode": {
+        "Dark": 16,
+        "Light": 16
+      }
+    }
+  ]
+}
