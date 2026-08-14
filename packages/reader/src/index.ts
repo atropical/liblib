@@ -43,7 +43,7 @@ export {
   LEGACY_USAGE_SCHEMAS,
   SNAPSHOT_SCHEMA,
   USAGE_SCHEMA,
-} from "../../../src/types.d";
+} from "@atropical/liblib-core/types";
 
 export type {
   ChangeKind,
@@ -64,4 +64,4 @@ export type {
   UsageSnapshot,
   VariableCollectionRecord,
   VariableRecord,
-} from "../../../src/types.d";
+} from "@atropical/liblib-core/types";

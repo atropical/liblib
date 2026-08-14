@@ -12,15 +12,15 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { encodeSnapshot, encodeUsage, OutputFormats } from "../../../src/snapshot/encode";
-import { hashValue } from "../../../src/utils/stable";
+import { encodeSnapshot, encodeUsage, OutputFormats } from "@atropical/liblib-core/snapshot/encode";
+import { hashValue } from "@atropical/liblib-core/utils/stable";
 import {
   SNAPSHOT_SCHEMA,
   SerializedNode,
   Snapshot,
   USAGE_SCHEMA,
   UsageSnapshot,
-} from "../../../src/types.d";
+} from "@atropical/liblib-core/types";
 
 // Bundled before it runs, so the output path comes from the package root npm sets.
 const out = resolve(process.cwd(), "test/fixtures");

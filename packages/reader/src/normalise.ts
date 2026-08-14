@@ -1,4 +1,4 @@
-import { SerializedNode, Snapshot, UsageSnapshot } from "../../../src/types.d";
+import { SerializedNode, Snapshot, UsageSnapshot } from "@atropical/liblib-core/types";
 
 /**
  * Brings older exports up to the current field names, once, at read time.

@@ -121,27 +121,34 @@ snapshot is the way to get a diff.
 
 ```bash
 npm install
-npm run dev       # typecheck and rebuild on change
-npm run build     # production build into dist/
-npm run test      # typecheck, token calibration, build
+npm run dev       # typecheck and rebuild the plugin on change
+npm run build     # production build into packages/plugin/dist/
+npm run test      # typecheck, token calibration, plugin build, reader test suite
 ```
 
-In Figma: **Plugins → Development → Import plugin from manifest…**, pick `dist/manifest.json`.
-`figma.manifest.ts` is the source of truth; `dist/manifest.json` is generated.
+The repo is an npm workspace; the root scripts above delegate to the packages.
+
+In Figma: **Plugins → Development → Import plugin from manifest…**, pick
+`packages/plugin/dist/manifest.json`. `packages/plugin/figma.manifest.ts` is the source of truth;
+`dist/manifest.json` is generated.
 
 Token figures are estimates, shown as a ±10% range. `npm run calibrate:tokens` checks them against a
 real tokenizer and fails if they drift.
 
 ```
-src/
-  code.ts             plugin thread
-  ui.tsx              UI thread, routes on the menu command
-  snapshot/           the scans, the diff, the encoders, the report
-  views/              one per menu command
-  hooks/              talking to the plugin thread
-  components/         preview, format picker, options
-  utils/              hashing, token estimation, highlighting
 packages/
+  core/               shared by the plugin and the reader, no Figma API in it
+    types.ts          the record types and the schema ids
+    snapshot/         the diff, the encoders, the Markdown report
+    utils/stable.ts   deterministic ordering and hashing
+  plugin/             the Figma plugin
+    src/code.ts       plugin thread
+    src/ui.tsx        UI thread, routes on the menu command
+    src/snapshot/     the scans and the cost estimate
+    src/views/        one per menu command
+    src/hooks/        talking to the plugin thread
+    src/components/   preview, format picker, options
+    src/utils/        token estimation, highlighting, download
   reader/             @atropical/liblib — the reader package and CLI
 ```
 

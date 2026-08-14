@@ -1,5 +1,5 @@
-import { diffSnapshots, diffUsage } from "../../../src/snapshot/diff";
-import { DiffReport, Snapshot, UsageDiffReport, UsageSnapshot } from "../../../src/types.d";
+import { diffSnapshots, diffUsage } from "@atropical/liblib-core/snapshot/diff";
+import { DiffReport, Snapshot, UsageDiffReport, UsageSnapshot } from "@atropical/liblib-core/types";
 import { SchemaError } from "./errors";
 import { ReadResult, SnapshotKind } from "./read";
 

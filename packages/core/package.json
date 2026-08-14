@@ -1,0 +1,18 @@
+{
+  "name": "@atropical/liblib-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The parts of LibLib that neither the plugin nor the reader may own alone: the record types and schema ids, the determinism helpers, the diff, and the encoders. No Figma plugin API anywhere in here.",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "author": "Atropical AS",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@toon-format/toon": "^4.1.0"
+  }
+}

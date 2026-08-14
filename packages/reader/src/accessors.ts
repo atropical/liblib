@@ -4,7 +4,7 @@ import {
   FrameRecord,
   SerializedNode,
   UsageSnapshot,
-} from "../../../src/types.d";
+} from "@atropical/liblib-core/types";
 import { SchemaError } from "./errors";
 
 /**

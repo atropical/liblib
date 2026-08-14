@@ -16,7 +16,7 @@ import type { TreeNode } from "./accessors";
 import { diff } from "./diff";
 import { SchemaError } from "./errors";
 import { read, readUsage } from "./read";
-import type { Snapshot, UsageSnapshot } from "../../../src/types.d";
+import type { Snapshot, UsageSnapshot } from "@atropical/liblib-core/types";
 
 /**
  * A frame nests about as deep as its designer's patience. The plugin exports to

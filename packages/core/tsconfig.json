@@ -9,13 +9,9 @@
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "types": ["node"]
+    "noEmit": true,
+    "types": []
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test"]
+  "exclude": ["node_modules"]
 }
