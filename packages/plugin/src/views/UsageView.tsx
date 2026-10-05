@@ -13,6 +13,7 @@ import { DEFAULT_FORMAT, encodeUsage, FORMATS, OutputFormats } from "@atropical/
 import { downloadText, slugify } from "../utils/download";
 import { UsageOptions } from "@atropical/liblib-core/types";
 import { mimeFor } from "./SnapshotView";
+import { ErrorNotice } from "../components/ErrorNotice";
 
 interface UsageViewProps {
   editorType?: string;
@@ -106,7 +107,7 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
                 {progress.stage}: {progress.scanned}/{progress.total}
               </Text>
             )}
-            {error && <Text style={{ color: "var(--figma-color-text-danger)" }}>{error}</Text>}
+            {error && <ErrorNotice error={error} context="Usage scan" editorType={editorType} />}
           </>
         )}
       </ExportLayout>

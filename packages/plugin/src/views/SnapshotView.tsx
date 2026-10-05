@@ -12,6 +12,7 @@ import { DEFAULT_OPTIONS } from "../snapshot/buildSnapshot";
 import { DEFAULT_FORMAT, encodeSnapshot, FORMATS, OutputFormats } from "@atropical/liblib-core/snapshot/encode";
 import { downloadText, slugify } from "../utils/download";
 import { SnapshotOptions } from "@atropical/liblib-core/types";
+import { ErrorNotice } from "../components/ErrorNotice";
 
 interface SnapshotViewProps {
   editorType?: string;
@@ -98,7 +99,7 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({ editorType }) => {
                 {progress.stage}: {progress.scanned}/{progress.total}
               </Text>
             )}
-            {error && <Text style={{ color: "var(--figma-color-text-danger)" }}>{error}</Text>}
+            {error && <ErrorNotice error={error} context="Snapshot" editorType={editorType} />}
           </>
         )}
       </ExportLayout>

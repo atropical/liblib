@@ -1,6 +1,10 @@
 TAGLINE:
 Design systems in a form agents can actually read — the library, and the designs using it.
 
+RELEASE NOTES (2.2.1):
+🩹 **Exports no longer fail on text with different spacing per paragraph.** The "Cannot unwrap symbol" error is gone.
+🐛 **Something off? Report it in one click.** Errors and unexpected values now link to a ready-made GitHub issue.
+
 RELEASE NOTES (2.2.0):
 📖 **Your agent can now read the exports properly.** `npx @atropical/liblib` answers questions about a snapshot — which variant a layer uses, where a value doesn't match its token, what changed since the last export.
 🔗 **Every export says how to read it**, so an agent that opens the file works it out on its own.

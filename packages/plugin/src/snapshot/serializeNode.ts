@@ -261,7 +261,9 @@ function hasIdentity(node: SceneNode, remainingDepth: number): boolean {
 
 async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Record<string, unknown>> {
   const props: Record<string, unknown> = {};
-  const put = (key: string, value: unknown) => {
+  // Rejects anything that may be a symbol: `figma.mixed` cannot cross
+  // postMessage, so a property typed `T | figma.mixed` must go through `mixedOr`.
+  const put = <T>(key: string, value: [Extract<T, symbol>] extends [never] ? T : never) => {
     if (value === undefined || value === null) return;
     props[key] = value;
   };
@@ -359,8 +361,8 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
     put("textAutoResize", node.textAutoResize);
     put("textTruncation", node.textTruncation);
     put("maxLines", nonNull(node.maxLines));
-    put("paragraphSpacing", node.paragraphSpacing);
-    put("paragraphIndent", node.paragraphIndent);
+    put("paragraphSpacing", mixedOr(node.paragraphSpacing, (v) => v));
+    put("paragraphIndent", mixedOr(node.paragraphIndent, (v) => v));
     put("textStyle", mixedOr(node.textStyleId, styleKey));
     // Styled segments capture per-range typography, which is the only way to
     // express a text node whose scalar props read as `figma.mixed`.
@@ -499,7 +501,7 @@ function serializeEffect(effect: Effect): unknown {
   return base;
 }
 
-function serializeComponentProperties(properties: ComponentProperties): unknown {
+function serializeComponentProperties(properties: ComponentProperties): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const name of Object.keys(properties).sort()) {
     const property = properties[name];
@@ -653,7 +655,7 @@ async function variableName(alias: VariableAlias, ctx: SerializeContext): Promis
 }
 
 /** Unwrap a value that may be `figma.mixed` or absent, mapping the concrete case. */
-function mixedOr<T>(value: T | PluginAPI["mixed"] | undefined, map: (value: T) => unknown): unknown {
+function mixedOr<T, R>(value: T | PluginAPI["mixed"] | undefined, map: (value: T) => R): R | "mixed" | undefined {
   if (value === undefined) return undefined;
   return value === figma.mixed ? "mixed" : map(value as T);
 }
