@@ -56,6 +56,18 @@ export enum MessageTypes {
   /** UI asks what the current selection covers; the plugin thread answers. */
   REQUEST_SELECTION = "request-selection",
   SELECTION_RESULT = "selection-result",
+  /** The plugin thread had to patch a value the Figma API returned unexpectedly. */
+  API_WARNING = "api-warning",
+}
+
+/**
+ * A property Figma returned as `figma.mixed` where the typings promise a plain
+ * value. The export carries on with `"mixed"`, but the plugin needs a fix.
+ */
+export interface ApiWarning {
+  property: string;
+  /** One place it happened, so a bug report can point at it. */
+  example: string;
 }
 
 /** One half of the sample, measured on its own so cost can be fitted. */
@@ -378,6 +390,8 @@ export interface PluginMessage {
   total?: number;
   stage?: string;
   error?: string;
+  apiWarnings?: ApiWarning[];
+  pluginVersion?: string;
 }
 
 export interface SnapshotOptions {

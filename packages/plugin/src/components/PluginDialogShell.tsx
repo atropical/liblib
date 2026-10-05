@@ -1,5 +1,6 @@
 import React from "react";
 import { Flex } from "figma-kit";
+import { ApiWarningBanner } from "./ApiWarningBanner";
 import { Footer } from "./Footer";
 
 interface PluginDialogShellProps {
@@ -43,6 +44,7 @@ export const PluginDialogShell: React.FC<PluginDialogShellProps> = ({
       overflowY: "auto",
     }}
   >
+    <ApiWarningBanner />
     {header && (
       <Flex direction="column" gap="2" style={{ flex: "0 0 auto" }}>
         {header}
