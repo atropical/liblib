@@ -1,7 +1,7 @@
 /// <reference types="@figma/plugin-typings" />
 
 import { ApiWarning, MessageTypes, PluginCommands, PluginMessage, UsageScope } from "@atropical/liblib-core/types";
-import { buildSnapshot, DEFAULT_OPTIONS, PLUGIN_VERSION, probeSnapshot } from "./snapshot/buildSnapshot";
+import { buildSnapshot, DEFAULT_OPTIONS, probeSnapshot } from "./snapshot/buildSnapshot";
 import { buildUsage, DEFAULT_USAGE_OPTIONS, probeUsage, summariseSelection } from "./snapshot/buildUsage";
 
 figma.showUI(__html__, { width: 640, height: 640, themeColors: true });
@@ -38,7 +38,6 @@ function postToUI(message: PluginMessage): void {
     figma.ui.postMessage({
       type: MessageTypes.API_WARNING,
       apiWarnings: Array.from(warnings.values()),
-      pluginVersion: PLUGIN_VERSION,
       editorType: figma.editorType,
     } as PluginMessage);
   }

@@ -391,7 +391,6 @@ export interface PluginMessage {
   stage?: string;
   error?: string;
   apiWarnings?: ApiWarning[];
-  pluginVersion?: string;
 }
 
 export interface SnapshotOptions {

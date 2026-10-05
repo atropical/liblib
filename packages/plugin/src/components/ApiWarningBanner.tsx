@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Flex, Link, Text } from "figma-kit";
 import { ApiWarning, MessageTypes, PluginMessage } from "@atropical/liblib-core/types";
-
-const ISSUES_URL = "https://github.com/atropical/liblib/issues/new";
+import { issueUrl } from "../utils/reportIssue";
 
 interface Report {
   warnings: ApiWarning[];
-  pluginVersion?: string;
   editorType?: string;
 }
 
@@ -28,7 +26,6 @@ export const ApiWarningBanner: React.FC = () => {
         if (previous && fresh.length === 0) return previous;
         return {
           warnings: [...(previous?.warnings ?? []), ...fresh],
-          pluginVersion: pluginMessage.pluginVersion,
           editorType: pluginMessage.editorType,
         };
       });
@@ -42,15 +39,15 @@ export const ApiWarningBanner: React.FC = () => {
 
   const properties = report.warnings.map((warning) => warning.property);
   const title = `Unexpected mixed value: ${properties.join(", ")}`;
-  const body = [
-    "LibLib replaced values Figma returned as `figma.mixed` on properties it expected to be plain.",
-    "",
-    ...report.warnings.map((warning) => `- \`${warning.property}\` (e.g. \`${warning.example}\`)`),
-    "",
-    `Plugin version: ${report.pluginVersion ?? "unknown"}`,
-    `Editor: ${report.editorType ?? "unknown"}`,
-  ].join("\n");
-  const href = `${ISSUES_URL}?${new URLSearchParams({ title, body }).toString()}`;
+  const href = issueUrl(
+    title,
+    [
+      "LibLib replaced values Figma returned as `figma.mixed` on properties it expected to be plain.",
+      "",
+      ...report.warnings.map((warning) => `- \`${warning.property}\` (e.g. \`${warning.example}\`)`),
+    ],
+    report.editorType,
+  );
 
   return (
     <Flex

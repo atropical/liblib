@@ -15,6 +15,7 @@ import { DEFAULT_FORMAT, encodeDiff, FORMATS, OutputFormats, parseSnapshot } fro
 import { downloadText, readFileAsText, slugify } from "../utils/download";
 import { Snapshot, SnapshotOptions } from "@atropical/liblib-core/types";
 import { mimeFor } from "./SnapshotView";
+import { ErrorNotice } from "../components/ErrorNotice";
 
 interface DiffViewProps {
   editorType?: string;
@@ -134,7 +135,7 @@ export const DiffView: React.FC<DiffViewProps> = ({ editorType }) => {
                 {progress.stage}: {progress.scanned}/{progress.total}
               </Text>
             )}
-            {error && <Text style={{ color: "var(--figma-color-text-danger)" }}>{error}</Text>}
+            {error && <ErrorNotice error={error} context="Diff" editorType={editorType} />}
           </>
         )}
 
