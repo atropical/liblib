@@ -379,9 +379,6 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
       "listOptions",
       "indentation",
       "hyperlink",
-      "paragraphSpacing",
-      "paragraphIndent",
-      "listSpacing",
     ]).map((segment) => ({
       characters: segment.characters,
       fontName: segment.fontName,
@@ -396,9 +393,6 @@ async function collectProps(node: SceneNode, ctx: SerializeContext): Promise<Rec
       listOptions: segment.listOptions,
       indentation: segment.indentation,
       hyperlink: segment.hyperlink,
-      paragraphSpacing: segment.paragraphSpacing,
-      paragraphIndent: segment.paragraphIndent,
-      listSpacing: segment.listSpacing,
     })));
   }
 
