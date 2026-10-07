@@ -40,8 +40,8 @@ export type {
 export { diff } from "./diff";
 export type { DiffInput } from "./diff";
 
-export { FORMAT_CHANGES, FORMAT_CHANGES_URL } from "@atropical/liblib-core/formatChanges";
-export type { FormatChange } from "@atropical/liblib-core/formatChanges";
+export { FORMAT_CHANGES, FORMAT_CHANGES_URL } from "@atropical/liblib-core/types";
+export type { FormatChange } from "@atropical/liblib-core/types";
 
 export {
   LEGACY_SNAPSHOT_SCHEMAS,
