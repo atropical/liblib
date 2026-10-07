@@ -176,7 +176,24 @@ export interface StyleRecord {
   type: "PAINT" | "TEXT" | "EFFECT" | "GRID";
   description: string;
   value: unknown;
+  /**
+   * Every variable bound inside `value`, keyed by its path there
+   * (`boundVariables.fontSize`, `paints[0].boundVariables.color`). `value`
+   * names the variable only; names repeat across collections, so this is what
+   * a consumer rebinding the style needs. Added in plugin 2.3.0 — absent in
+   * older snapshots — and left out of `hash`, so it never reads as a change.
+   */
+  bindings?: Record<string, StyleBinding>;
   hash: string;
+}
+
+export interface StyleBinding {
+  /** Variable name, as it appears in `value`. */
+  name: string;
+  /** Owning collection's name; `null` when the variable could not be resolved. */
+  collection: string | null;
+  /** Variable publish key; `null` for unpublished or unresolved variables. */
+  key: string | null;
 }
 
 export interface VariableRecord {

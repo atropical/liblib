@@ -232,6 +232,10 @@ const RENAME_PATHS = new Set(["name", "structure.name"]);
  * turn "I copied the library" into a diff against every component.
  */
 function isIgnored(path: string): boolean {
+  // A style's `bindings` restate what `value` already names, plus the
+  // collection; older snapshots lack them, so diffing them would only report
+  // the plugin update.
+  if (path === "bindings" || path.startsWith("bindings.") || path.startsWith("bindings[")) return true;
   return IGNORED_FIELDS.has(path) || path === "nodeId" || path.endsWith(".nodeId");
 }
 

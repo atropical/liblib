@@ -60,6 +60,7 @@ export type {
   FrameRecord,
   SerializedNode,
   Snapshot,
+  StyleBinding,
   StyleRecord,
   UsageDiffReport,
   UsageScope,

@@ -9,6 +9,7 @@ import {
   SNAPSHOT_SCHEMA,
   Snapshot,
   SnapshotOptions,
+  StyleBinding,
   StyleRecord,
   VariableCollectionRecord,
   VariableRecord,
@@ -363,14 +364,45 @@ async function styleRecord(
   ctx: SerializeContext,
 ): Promise<StyleRecord> {
   const normalizedValue = roundNumbers(await resolveVariableAliases(value, ctx));
+  const bindings: Record<string, StyleBinding> = {};
+  await collectBindings(value, "", bindings);
   return {
     key: style.key || styleKeyFromId(style.id) || style.id,
     name: style.name,
     type,
     description: style.description ?? "",
     value: normalizedValue,
+    ...(Object.keys(bindings).length > 0 ? { bindings } : {}),
     hash: hashValue({ name: style.name, description: style.description ?? "", value: normalizedValue }),
   };
+}
+
+/**
+ * Walks a raw style descriptor for variable aliases and records each one's
+ * collection and key beside its name. `value` keeps the bare name — changing
+ * it would change every bound style's hash — so this sits next to it.
+ */
+async function collectBindings(value: unknown, path: string, out: Record<string, StyleBinding>): Promise<void> {
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) await collectBindings(value[i], `${path}[${i}]`, out);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+
+  const record = value as Record<string, unknown>;
+  if (record.type === "VARIABLE_ALIAS" && typeof record.id === "string") {
+    const variable = await figma.variables.getVariableByIdAsync(record.id);
+    if (!variable) {
+      out[path] = { name: `unresolved:${record.id}`, collection: null, key: null };
+      return;
+    }
+    const collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+    out[path] = { name: variable.name, collection: collection ? collection.name : null, key: variable.key || null };
+    return;
+  }
+  for (const key of Object.keys(record)) {
+    await collectBindings(record[key], path ? `${path}.${key}` : key, out);
+  }
 }
 
 async function collectVariables(

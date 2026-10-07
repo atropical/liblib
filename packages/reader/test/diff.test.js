@@ -43,3 +43,19 @@ test("diff() refuses something that is not a snapshot at all", () => {
   const error = thrown(() => diff(base, { schema: "liblib/usage-snapshot@3" }));
   assert.match(error.message, /neither `frames` nor `components`/);
 });
+
+test("diff() ignores style `bindings`, which older snapshots lack", () => {
+  const before = structuredClone(library.data);
+  const after = structuredClone(library.data);
+  const style = after.styles[0];
+  assert.ok(style, "the library fixture should carry a style");
+  style.bindings = { "boundVariables.fontSize": { name: "type/xl/size", collection: "Theme", key: null } };
+  assert.equal(diff(before, after).styles.length, 0);
+
+  // A real change still shows, without the new field riding along.
+  style.description = "edited";
+  style.hash = "changed";
+  const [entry] = diff(before, after).styles;
+  assert.equal(entry.kind, "modified");
+  assert.ok(entry.changes.every((change) => !change.path.startsWith("bindings")));
+});
