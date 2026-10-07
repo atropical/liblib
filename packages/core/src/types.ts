@@ -35,6 +35,38 @@ export const LEGACY_USAGE_SCHEMAS = ["liblib/usage-snapshot@1", "liblib/usage-sn
  */
 export const READ_WITH = "npx @atropical/liblib info <file> — typed reader for this format";
 
+/**
+ * What each plugin release changed about the files it writes, and what that
+ * means for anyone comparing a file from before it with one from after.
+ *
+ * A diff that spans releases quotes the entries in between, so an agent
+ * reading the report learns why some records moved without being told. Keep
+ * FORMAT-CHANGES.md in the reader package in step: a test holds the two
+ * together. Lives here, not in formatChanges.ts, because this is the one core
+ * module the reader ships declarations for.
+ */
+export interface FormatChange {
+  /** Plugin version that first wrote the change. */
+  version: string;
+  /** One sentence: what the files now contain. */
+  change: string;
+  /** One sentence: what that does to hashes and diffs across the release. */
+  consequence: string;
+}
+
+export const FORMAT_CHANGES_URL = "https://github.com/atropical/liblib/blob/main/packages/reader/FORMAT-CHANGES.md";
+
+export const FORMAT_CHANGES: FormatChange[] = [
+  {
+    version: "2.3.0",
+    change:
+      "Style records carry `bindings`: each bound variable's name, collection and key, keyed by its path in `value`.",
+    consequence:
+      "The hash of every style that binds a variable changes once; against an older snapshot the diff skips " +
+      "`bindings`, so those styles are not reported unless something else about them changed.",
+  },
+];
+
 export enum PluginCommands {
   SNAPSHOT = "snapshot",
   DIFF = "diff",
