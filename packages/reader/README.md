@@ -18,6 +18,10 @@ plausible empty. A file that will not decode, has no schema, has one this packag
 the wrong kind, or has no records, throws `SchemaError` saying which. Old schemas are normalised on
 read, so accessors never branch on version.
 
+What each plugin release changed about the files, and what that does to hashes and diffs across
+it, is in [FORMAT-CHANGES.md](FORMAT-CHANGES.md). A diff that spans a release quotes the entry in
+its `notes`.
+
 ## Library
 
 ```ts

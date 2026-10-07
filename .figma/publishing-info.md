@@ -1,6 +1,10 @@
 TAGLINE:
 Design systems in a form agents can actually read — the library, and the designs using it.
 
+RELEASE NOTES (2.3.0):
+🎨 **Styles now say which collection their variables come from**, so `color/brand/500` in Primitives and in Theme are no longer the same thing — and switching between them shows up in a diff.
+📜 **Diffs across a plugin update explain themselves.** The report says what the new version changed about the export, so nothing moves without a reason.
+
 RELEASE NOTES (2.2.1):
 🩹 **Exports no longer fail on text with different spacing per paragraph.** The "Cannot unwrap symbol" error is gone.
 🐛 **Something off? Report it in one click.** Errors and unexpected values now link to a ready-made GitHub issue.

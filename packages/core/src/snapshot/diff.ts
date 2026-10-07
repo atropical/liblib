@@ -13,6 +13,7 @@ import {
   UsageSnapshot,
   VariableRecord,
 } from "../types";
+import { formatChangeNotes } from "../formatChanges";
 import { byField, hashValue, stableStringify } from "../utils/stable";
 
 interface Identified {
@@ -28,7 +29,7 @@ interface Identified {
  */
 export function diffSnapshots(base: Snapshot, head: Snapshot): DiffReport {
   const components = diffCollection(base.components, head.components);
-  const styles = diffCollection(base.styles, head.styles);
+  const styles = diffStyles(base.styles, head.styles);
   const variables = diffCollection(base.variables, head.variables);
 
   const all = [...components, ...styles, ...variables];
@@ -37,6 +38,7 @@ export function diffSnapshots(base: Snapshot, head: Snapshot): DiffReport {
     schema: SNAPSHOT_SCHEMA,
     base: { fileName: base.meta.fileName, generatedAt: base.meta.generatedAt },
     head: { fileName: head.meta.fileName, generatedAt: head.meta.generatedAt },
+    notes: formatChangeNotes(base.meta.pluginVersion, head.meta.pluginVersion),
     summary: {
       added: all.filter((entry) => entry.kind === "added").length,
       removed: all.filter((entry) => entry.kind === "removed").length,
@@ -69,7 +71,7 @@ export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffRe
   // that has one — which on a real screen is every node. Reporting that is
   // reporting our own release, and it buries the handful of changes the
   // designer actually made.
-  const notes: string[] = [];
+  const notes: string[] = formatChangeNotes(base.meta.pluginVersion, head.meta.pluginVersion);
   if (base.schema !== head.schema) {
     notes.push(
       `Base was written as \`${base.schema}\`, this scan as \`${head.schema}\`. Fields this plugin ` +
@@ -81,7 +83,7 @@ export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffRe
 
   const frames = diffCollection(base.frames, head.frames, inScope, volatileFields);
   const components = diffCollection(base.components, head.components);
-  const styles = diffCollection(base.styles, head.styles);
+  const styles = diffStyles(base.styles, head.styles);
   const variables = diffCollection(base.variables, head.variables);
   const deviations = diffCollection(
     deviationEntries(base.deviations),
@@ -154,6 +156,19 @@ function deviationEntries(deviations: DeviationRecord[]): Identified[] {
     }),
   }));
 }
+
+/**
+ * Style `bindings` (plugin 2.3.0+) name each bound variable's collection, which
+ * `value` and `hash` do not. They are compared only when both snapshots carry
+ * them: against an older snapshot every bound style would otherwise report
+ * the plugin update as a change.
+ */
+function diffStyles(base: StyleRecord[], head: StyleRecord[]): DiffEntry[] {
+  const carries = (styles: StyleRecord[]) => styles.some((style) => style.bindings !== undefined);
+  return diffCollection(base, head, undefined, carries(base) && carries(head) ? undefined : STYLE_BINDINGS);
+}
+
+const STYLE_BINDINGS: ReadonlySet<string> = new Set(["bindings"]);
 
 function diffCollection<T extends Identified>(
   baseItems: T[],

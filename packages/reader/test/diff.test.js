@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { SchemaError, diff, readLibrary, readUsage } from "../dist/index.js";
+import { FORMAT_CHANGES, SchemaError, diff, readLibrary, readUsage } from "../dist/index.js";
 import { fixture, thrown } from "./helpers.js";
 
 const base = readUsage(fixture("usage.toon"));
@@ -42,4 +43,55 @@ test("diff() refuses it the other way round too", () => {
 test("diff() refuses something that is not a snapshot at all", () => {
   const error = thrown(() => diff(base, { schema: "liblib/usage-snapshot@3" }));
   assert.match(error.message, /neither `frames` nor `components`/);
+});
+
+test("diff() ignores style `bindings`, which older snapshots lack", () => {
+  const before = structuredClone(library.data);
+  const after = structuredClone(library.data);
+  const style = after.styles[0];
+  assert.ok(style, "the library fixture should carry a style");
+  style.bindings = { "boundVariables.fontSize": { name: "type/xl/size", collection: "Theme", key: null } };
+  assert.equal(diff(before, after).styles.length, 0);
+
+  // A real change still shows, without the new field riding along.
+  style.description = "edited";
+  style.hash = "changed";
+  const [entry] = diff(before, after).styles;
+  assert.equal(entry.kind, "modified");
+  assert.ok(entry.changes.every((change) => !change.path.startsWith("bindings")));
+});
+
+test("diff() reports a rebind across collections once both snapshots carry `bindings`", () => {
+  const before = structuredClone(library.data);
+  const after = structuredClone(library.data);
+  const binding = (collection) => ({ "boundVariables.fontSize": { name: "type/xl/size", collection, key: null } });
+  before.styles[0].bindings = binding("Primitives");
+  after.styles[0].bindings = binding("Theme");
+  // The plugin hashes `bindings`, so the move changes the hash.
+  after.styles[0].hash = "rebound";
+
+  const [entry] = diff(before, after).styles;
+  assert.equal(entry.kind, "modified");
+  assert.deepEqual(
+    entry.changes.map((change) => [change.path, change.before, change.after]),
+    [["bindings.boundVariables.fontSize.collection", "Primitives", "Theme"]],
+  );
+});
+
+test("diff() notes the format changes between the releases that wrote each side", () => {
+  const before = structuredClone(library.data);
+  const after = structuredClone(library.data);
+  before.meta.pluginVersion = "2.2.1";
+  after.meta.pluginVersion = "2.3.0";
+  const notes = diff(before, after).notes;
+  assert.ok(notes.some((note) => note.startsWith("LibLib 2.3.0 changed the format")));
+  assert.ok(notes.some((note) => note.includes("FORMAT-CHANGES.md")));
+
+  before.meta.pluginVersion = "2.3.0";
+  assert.deepEqual(diff(before, after).notes, []);
+});
+
+test("FORMAT-CHANGES.md has a section for every release the diff quotes", () => {
+  const doc = readFileSync(new URL("../FORMAT-CHANGES.md", import.meta.url), "utf8");
+  for (const { version } of FORMAT_CHANGES) assert.ok(doc.includes(`## ${version}`), version);
 });

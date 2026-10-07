@@ -302,6 +302,8 @@ export function diffToMarkdown(report: DiffReport): string {
   );
   lines.push("");
 
+  for (const note of report.notes ?? []) lines.push(`> ${note}`, "");
+
   if (report.components.length + report.styles.length + report.variables.length === 0) {
     lines.push("No changes.", "");
     return lines.join("\n");
