@@ -366,6 +366,8 @@ export interface DiffReport {
   schema: string;
   base: { fileName: string; generatedAt: string };
   head: { fileName: string; generatedAt: string };
+  /** Format changes between the plugin versions that wrote base and head. */
+  notes: string[];
   summary: Record<string, number>;
   components: DiffEntry[];
   styles: DiffEntry[];
@@ -378,8 +380,8 @@ export interface UsageDiffReport {
   head: { fileName: string; generatedAt: string };
   /**
    * Anything a reader must know before trusting the numbers — chiefly that the
-   * two exports were written to different schemas, and which fields were left
-   * out because of it.
+   * two exports were written by different plugin versions or schemas, and
+   * which fields were left out because of it.
    */
   notes: string[];
   summary: Record<string, number>;

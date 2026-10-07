@@ -13,6 +13,7 @@ import {
   UsageSnapshot,
   VariableRecord,
 } from "../types";
+import { formatChangeNotes } from "../formatChanges";
 import { byField, hashValue, stableStringify } from "../utils/stable";
 
 interface Identified {
@@ -37,6 +38,7 @@ export function diffSnapshots(base: Snapshot, head: Snapshot): DiffReport {
     schema: SNAPSHOT_SCHEMA,
     base: { fileName: base.meta.fileName, generatedAt: base.meta.generatedAt },
     head: { fileName: head.meta.fileName, generatedAt: head.meta.generatedAt },
+    notes: formatChangeNotes(base.meta.pluginVersion, head.meta.pluginVersion),
     summary: {
       added: all.filter((entry) => entry.kind === "added").length,
       removed: all.filter((entry) => entry.kind === "removed").length,
@@ -69,7 +71,7 @@ export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffRe
   // that has one — which on a real screen is every node. Reporting that is
   // reporting our own release, and it buries the handful of changes the
   // designer actually made.
-  const notes: string[] = [];
+  const notes: string[] = formatChangeNotes(base.meta.pluginVersion, head.meta.pluginVersion);
   if (base.schema !== head.schema) {
     notes.push(
       `Base was written as \`${base.schema}\`, this scan as \`${head.schema}\`. Fields this plugin ` +
@@ -168,11 +170,6 @@ function diffStyles(base: StyleRecord[], head: StyleRecord[]): DiffEntry[] {
 
 const STYLE_BINDINGS: ReadonlySet<string> = new Set(["bindings"]);
 
-function sameBindings(base: Identified, head: Identified): boolean {
-  const bindings = (item: Identified) => (item as { bindings?: unknown }).bindings ?? null;
-  return hashValue(bindings(base)) === hashValue(bindings(head));
-}
-
 function diffCollection<T extends Identified>(
   baseItems: T[],
   headItems: T[],
@@ -191,10 +188,7 @@ function diffCollection<T extends Identified>(
       entries.push({ kind: "added", key, name: headItem.name, changes: [] });
       continue;
     }
-    // A style's hash predates `bindings`, so a rebind to a same-named variable
-    // in another collection leaves it untouched — check them separately.
-    const bindingsMoved = !volatileFields?.has("bindings") && !sameBindings(baseItem, headItem);
-    if (baseItem.hash === headItem.hash && !bindingsMoved) continue;
+    if (baseItem.hash === headItem.hash) continue;
 
     const changes = diffRecords(baseItem, headItem, volatileFields);
     // Its hash differs, but everything that differs was our own field rename.

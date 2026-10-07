@@ -16,6 +16,10 @@ two kinds:
 
 Both are TOON (or JSON) and both name their schema on the first line. `liblib` reads them.
 
+Snapshots from different plugin releases (`meta.pluginVersion`) can differ in shape and hashes.
+A diff across releases explains this in its `notes` — read them before the numbers. The full
+record ships with this package as `FORMAT-CHANGES.md`.
+
 ## When to reach for this
 
 - **Before opening a `.toon` or `.json` snapshot by hand.** Parsing it yourself does not crash — it

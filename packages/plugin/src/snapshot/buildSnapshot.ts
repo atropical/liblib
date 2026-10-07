@@ -366,21 +366,29 @@ async function styleRecord(
   const normalizedValue = roundNumbers(await resolveVariableAliases(value, ctx));
   const bindings: Record<string, StyleBinding> = {};
   await collectBindings(value, "", bindings);
+  const hasBindings = Object.keys(bindings).length > 0;
   return {
     key: style.key || styleKeyFromId(style.id) || style.id,
     name: style.name,
     type,
     description: style.description ?? "",
     value: normalizedValue,
-    ...(Object.keys(bindings).length > 0 ? { bindings } : {}),
-    hash: hashValue({ name: style.name, description: style.description ?? "", value: normalizedValue }),
+    ...(hasBindings ? { bindings } : {}),
+    // `bindings` only when present, so a style that binds nothing keeps the
+    // hash older releases gave it.
+    hash: hashValue({
+      name: style.name,
+      description: style.description ?? "",
+      value: normalizedValue,
+      ...(hasBindings ? { bindings } : {}),
+    }),
   };
 }
 
 /**
  * Walks a raw style descriptor for variable aliases and records each one's
- * collection and key beside its name. `value` keeps the bare name — changing
- * it would change every bound style's hash — so this sits next to it.
+ * collection and key beside its name. `value` keeps the bare name, so
+ * readers of `value` see the same shape they always have.
  */
 async function collectBindings(value: unknown, path: string, out: Record<string, StyleBinding>): Promise<void> {
   if (Array.isArray(value)) {

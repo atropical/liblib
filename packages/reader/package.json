@@ -44,6 +44,7 @@
   "files": [
     "dist",
     "SKILL.md",
+    "FORMAT-CHANGES.md",
     "README.md",
     "LICENSE"
   ],
