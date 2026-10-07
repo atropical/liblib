@@ -39,7 +39,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "liblib": "./dist/cli.js"
+    "liblib": "dist/cli.js"
   },
   "files": [
     "dist",
