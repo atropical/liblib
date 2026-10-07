@@ -59,3 +59,22 @@ test("diff() ignores style `bindings`, which older snapshots lack", () => {
   assert.equal(entry.kind, "modified");
   assert.ok(entry.changes.every((change) => !change.path.startsWith("bindings")));
 });
+
+test("diff() reports a rebind across collections once both snapshots carry `bindings`", () => {
+  const before = structuredClone(library.data);
+  const after = structuredClone(library.data);
+  const binding = (collection) => ({ "boundVariables.fontSize": { name: "type/xl/size", collection, key: null } });
+  before.styles[0].bindings = binding("Primitives");
+  after.styles[0].bindings = binding("Theme");
+
+  // Same name, same hash: only `bindings` can tell the two variables apart.
+  const [entry] = diff(before, after).styles;
+  assert.equal(entry.kind, "modified");
+  assert.deepEqual(
+    entry.changes.map((change) => [change.path, change.before, change.after]),
+    [["bindings.boundVariables.fontSize.collection", "Primitives", "Theme"]],
+  );
+
+  after.styles[0].bindings = binding("Primitives");
+  assert.equal(diff(before, after).styles.length, 0);
+});

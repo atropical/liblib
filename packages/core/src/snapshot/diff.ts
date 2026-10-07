@@ -28,7 +28,7 @@ interface Identified {
  */
 export function diffSnapshots(base: Snapshot, head: Snapshot): DiffReport {
   const components = diffCollection(base.components, head.components);
-  const styles = diffCollection(base.styles, head.styles);
+  const styles = diffStyles(base.styles, head.styles);
   const variables = diffCollection(base.variables, head.variables);
 
   const all = [...components, ...styles, ...variables];
@@ -81,7 +81,7 @@ export function diffUsage(base: UsageSnapshot, head: UsageSnapshot): UsageDiffRe
 
   const frames = diffCollection(base.frames, head.frames, inScope, volatileFields);
   const components = diffCollection(base.components, head.components);
-  const styles = diffCollection(base.styles, head.styles);
+  const styles = diffStyles(base.styles, head.styles);
   const variables = diffCollection(base.variables, head.variables);
   const deviations = diffCollection(
     deviationEntries(base.deviations),
@@ -155,6 +155,24 @@ function deviationEntries(deviations: DeviationRecord[]): Identified[] {
   }));
 }
 
+/**
+ * Style `bindings` (plugin 2.3.0+) name each bound variable's collection, which
+ * `value` and `hash` do not. They are compared only when both snapshots carry
+ * them: against an older snapshot every bound style would otherwise report
+ * the plugin update as a change.
+ */
+function diffStyles(base: StyleRecord[], head: StyleRecord[]): DiffEntry[] {
+  const carries = (styles: StyleRecord[]) => styles.some((style) => style.bindings !== undefined);
+  return diffCollection(base, head, undefined, carries(base) && carries(head) ? undefined : STYLE_BINDINGS);
+}
+
+const STYLE_BINDINGS: ReadonlySet<string> = new Set(["bindings"]);
+
+function sameBindings(base: Identified, head: Identified): boolean {
+  const bindings = (item: Identified) => (item as { bindings?: unknown }).bindings ?? null;
+  return hashValue(bindings(base)) === hashValue(bindings(head));
+}
+
 function diffCollection<T extends Identified>(
   baseItems: T[],
   headItems: T[],
@@ -173,7 +191,10 @@ function diffCollection<T extends Identified>(
       entries.push({ kind: "added", key, name: headItem.name, changes: [] });
       continue;
     }
-    if (baseItem.hash === headItem.hash) continue;
+    // A style's hash predates `bindings`, so a rebind to a same-named variable
+    // in another collection leaves it untouched — check them separately.
+    const bindingsMoved = !volatileFields?.has("bindings") && !sameBindings(baseItem, headItem);
+    if (baseItem.hash === headItem.hash && !bindingsMoved) continue;
 
     const changes = diffRecords(baseItem, headItem, volatileFields);
     // Its hash differs, but everything that differs was our own field rename.
@@ -232,10 +253,6 @@ const RENAME_PATHS = new Set(["name", "structure.name"]);
  * turn "I copied the library" into a diff against every component.
  */
 function isIgnored(path: string): boolean {
-  // A style's `bindings` restate what `value` already names, plus the
-  // collection; older snapshots lack them, so diffing them would only report
-  // the plugin update.
-  if (path === "bindings" || path.startsWith("bindings.") || path.startsWith("bindings[")) return true;
   return IGNORED_FIELDS.has(path) || path === "nodeId" || path.endsWith(".nodeId");
 }
 
