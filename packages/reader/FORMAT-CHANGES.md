@@ -42,7 +42,7 @@ Releases that changed the schema id (`schema`) are still read as diff bases; fie
 
 ## 1.2.0
 
-**Change.** The plugin is renamed LibLib: the schema id moves from `help-an-agent/design-system-snapshot@1` to `liblib/design-system-snapshot@1`. Node keys are written identity-first, so a node's name comes before its children.
+**Change.** The library schema id moves from `help-an-agent/design-system-snapshot@1` to `liblib/design-system-snapshot@1`. Node keys are written identity-first, so a node's name comes before its children.
 
 **Consequences.** Hashes are unchanged and the old schema id still loads as a diff base. A text diff of the file itself (e.g. in git) shows every node reordered once.
 
