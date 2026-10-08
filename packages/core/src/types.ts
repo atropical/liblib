@@ -58,6 +58,47 @@ export const FORMAT_CHANGES_URL = "https://github.com/atropical/liblib/blob/main
 
 export const FORMAT_CHANGES: FormatChange[] = [
   {
+    version: "1.1.0",
+    change:
+      "Components carry `nodeId` and `width`/`height`, `meta` carries `fileKey`, and variable aliases inside " +
+      "style values resolve to variable names instead of raw ids.",
+    consequence:
+      "Component and style hashes change once; `nodeId` and `fileKey` are kept out of hashes and diffs, so a " +
+      "duplicated file does not diff as changed.",
+  },
+  {
+    version: "1.2.0",
+    change:
+      "The schema id moves from `help-an-agent/design-system-snapshot@1` to `liblib/design-system-snapshot@1`, " +
+      "and node keys are written identity-first.",
+    consequence:
+      "Hashes are unchanged and the old id still loads as a diff base; a text diff of the file itself shows " +
+      "every node reordered once.",
+  },
+  {
+    version: "2.0.0",
+    change:
+      "Usage snapshots arrive (`liblib/usage-snapshot@2`), and the library scan's default depth goes from 6 " +
+      "to 12 to match them.",
+    consequence:
+      "At the default depth, components nested deeper than 6 levels change hash once, because more of their " +
+      "tree is written.",
+  },
+  {
+    version: "2.1.0",
+    change:
+      "Usage schema goes to `@3`: `offset` is renamed `position`, a binding mismatch's `expected`/`actual` " +
+      "become `tokenValue`/`rendered`, and usage diffs match children by node id.",
+    consequence:
+      "Diffing an `@1` or `@2` usage export against a newer one suppresses the renamed and added fields, and " +
+      "says so in the report.",
+  },
+  {
+    version: "2.2.0",
+    change: "Every snapshot's `meta` carries `readWith`: how to read the file.",
+    consequence: "None: `meta` is not hashed or diffed, and files without it still load.",
+  },
+  {
     version: "2.3.0",
     change:
       "Style records carry `bindings`: each bound variable's name, collection and key, keyed by its path in `value`.",
