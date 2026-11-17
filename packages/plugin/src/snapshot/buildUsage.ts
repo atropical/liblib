@@ -1,4 +1,6 @@
 /// <reference types="@figma/plugin-typings" />
+import { fileKeyMeta } from "./fileLink";
+import { countWeights, startProbe } from "./probeControl";
 
 import {
   ComponentPropertyRecord,
@@ -110,14 +112,16 @@ export async function probeUsage(
   options: UsageOptions = DEFAULT_USAGE_OPTIONS,
   sampleSize = 8,
 ): Promise<ProbeResult> {
+  const ticket = startProbe();
   const overheadStart = Date.now();
   if (options.scope === "file") await figma.loadAllPagesAsync();
+  await ticket.checkpoint();
 
   const roots = await resolveFrames(options.scope);
   const ctx = usageContext(options);
 
-  const weights = roots.map((root) => countNodes(root, options.depth));
-  const totalNodes = weights.reduce((sum, weight) => sum + weight, 0);
+  const counted = await countWeights(roots, (root) => countNodes(root, options.depth), ticket);
+  const { weights, totalNodes } = counted;
   const overheadMs = Date.now() - overheadStart;
 
   const picks = pickSample(weights, sampleSize);
@@ -127,8 +131,9 @@ export async function probeUsage(
   const groups: ProbeGroup[] = [];
   for (const indices of [bySize.slice(0, half), bySize.slice(half)]) {
     if (indices.length === 0) continue;
+    await ticket.checkpoint();
     const start = Date.now();
-    const sampled = indices.map((index) => roots[index]);
+    const sampled = indices.map((index) => roots[counted.indices[index]]);
     const frames = await collectFrames(sampled, ctx);
     const components = await collectComponentUsage(sampled, frames);
     groups.push({
@@ -139,10 +144,13 @@ export async function probeUsage(
     });
   }
 
+  await ticket.checkpoint();
+
   return {
     componentCount: roots.length,
     sampleSize: picks.length,
     totalNodes,
+    approximate: counted.approximate,
     groups,
     overheadMs,
     base: assembleUsage(options.scope, [], [], [], [], [], []),
@@ -737,7 +745,7 @@ function assembleUsage(
       generatedAt: new Date().toISOString(),
       pluginVersion: PLUGIN_VERSION,
       fileName: figma.root.name,
-      fileKey: figma.fileKey,
+      ...fileKeyMeta(),
       readWith: READ_WITH,
       scope: {
         mode: scope,

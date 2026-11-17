@@ -7,6 +7,7 @@ import {
   UsageSnapshot,
 } from "../types";
 import { formatValue } from "./diff";
+import { nodeUrl } from "../links";
 
 /**
  * The Markdown report is the artefact an agent reads. It is deliberately flat
@@ -21,6 +22,7 @@ export function snapshotToMarkdown(snapshot: Snapshot): string {
   lines.push(`- Generated: ${meta.generatedAt}`);
   lines.push(`- Schema: \`${snapshot.schema}\``);
   if (meta.fileKey) lines.push(`- File key: \`${meta.fileKey}\``);
+  if (meta.viewWith) lines.push(`- See a node: ${meta.viewWith}`);
   for (const [name, count] of Object.entries(meta.counts)) {
     lines.push(`- ${name}: ${count}`);
   }
@@ -116,6 +118,7 @@ export function usageToMarkdown(usage: UsageSnapshot): string {
   lines.push(`- Generated: ${meta.generatedAt}`);
   lines.push(`- Schema: \`${usage.schema}\``);
   if (meta.fileKey) lines.push(`- File key: \`${meta.fileKey}\``);
+  if (meta.viewWith) lines.push(`- See a node: ${meta.viewWith}`);
   lines.push(`- Scope: ${meta.scope.mode} — ${meta.scope.frames.length} frame(s)`);
   if (meta.scope.pages.length > 0) lines.push(`- Pages: ${meta.scope.pages.map(escape).join(", ")}`);
   for (const [name, count] of Object.entries(meta.counts)) lines.push(`- ${name}: ${count}`);
@@ -360,8 +363,7 @@ function kindLabel(kind: DiffEntry["kind"]): string {
 function nodeReference(nodeId: string, fileKey: string | undefined, fileName: string): string {
   if (!nodeId) return "—";
   if (!fileKey) return `\`${nodeId}\``;
-  const slug = encodeURIComponent(fileName.replace(/\s+/g, "-"));
-  return `[\`${nodeId}\`](https://www.figma.com/design/${fileKey}/${slug}?node-id=${encodeURIComponent(nodeId)}&m=dev)`;
+  return `[\`${nodeId}\`](${nodeUrl(fileKey, nodeId, fileName)})`;
 }
 
 /** Pipes break Markdown tables and backticks break inline code spans. */

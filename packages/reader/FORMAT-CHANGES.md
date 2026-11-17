@@ -6,6 +6,14 @@ A diff that spans one of these releases quotes the entry in its `notes`, so you 
 
 Releases that changed the schema id (`schema`) are still read as diff bases; fields renamed across them are listed in the diff's notes.
 
+## 2.4.0
+
+**Change.** `meta.fileKey` is filled in whenever the key is known, and `meta` carries `viewWith`: how to open a node with Figma's MCP tools, or, when there is no key, what to ask the user for. Figma gives the file key only to plugins private to an organisation, so the Community plugin asks for the file's link once and saves it in the file. For a branch, `fileKey` is the branch key, which is what the MCP tools take. Schema ids are unchanged.
+
+**Why.** Before this, Community exports carried node ids but no file key, so an agent couldn't open a frame or take a screenshot of it.
+
+**Consequences.** None. `meta` is not hashed or diffed, and files without either field still load. For older exports, pass the file's link to the reader: `liblib link <file> <ref> --file-url <link>`.
+
 ## 2.3.0
 
 **Change.** Style records carry `bindings`: every variable bound inside `value`, keyed by its path there (`boundVariables.fontSize`, `paints[0].boundVariables.color`), with its `name`, `collection` and `key`. `value` is unchanged and still names the variable only. Styles that bind nothing have no `bindings`. The schema id stays `liblib/design-system-snapshot@1`.

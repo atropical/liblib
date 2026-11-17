@@ -2,6 +2,8 @@
 
 import { ApiWarning, MessageTypes, PluginCommands, PluginMessage, UsageScope } from "@atropical/liblib-core/types";
 import { buildSnapshot, DEFAULT_OPTIONS, probeSnapshot } from "./snapshot/buildSnapshot";
+import { fileLink, setFileLink } from "./snapshot/fileLink";
+import { cancelProbes, ProbeCancelled } from "./snapshot/probeControl";
 import { buildUsage, DEFAULT_USAGE_OPTIONS, probeUsage, summariseSelection } from "./snapshot/buildUsage";
 
 figma.showUI(__html__, { width: 640, height: 640, themeColors: true });
@@ -80,6 +82,12 @@ function reportError(error: unknown, fallback: string): void {
 }
 
 figma.ui.onmessage = async (msg: PluginMessage) => {
+  if (msg.type === MessageTypes.REQUEST_FILE_LINK || msg.type === MessageTypes.SET_FILE_LINK) {
+    const state = msg.type === MessageTypes.SET_FILE_LINK ? setFileLink(msg.fileUrl ?? "") : fileLink();
+    postToUI({ type: MessageTypes.FILE_LINK_RESULT, fileLink: state } as PluginMessage);
+    return;
+  }
+
   if (msg.type === MessageTypes.REQUEST_SELECTION) {
     watchedScope = msg.usageOptions?.scope ?? "selection";
     await postSelection(watchedScope);
@@ -94,6 +102,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           : await probeSnapshot(msg.options ?? DEFAULT_OPTIONS);
       postToUI({ type: MessageTypes.PROBE_RESULT, probe } as PluginMessage);
     } catch (error) {
+      // Superseded by a scan or a newer probe; whoever replaced it answers.
+      if (error instanceof ProbeCancelled) return;
       console.error(error);
       // A failed probe only costs the user an estimate, so it degrades to
       // silence rather than blocking the scan behind an error.
@@ -101,6 +111,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     }
     return;
   }
+
+  // A scan pre-empts any estimate still running: the user has stopped waiting for it.
+  if (msg.type === MessageTypes.BUILD_USAGE || msg.type === MessageTypes.BUILD_SNAPSHOT) cancelProbes();
 
   if (msg.type === MessageTypes.BUILD_USAGE) {
     try {

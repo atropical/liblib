@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import { components, counts, deviations, find, frames, mismatches, tree } from "./accessors";
 import type { TreeNode } from "./accessors";
 import { diff } from "./diff";
+import { fileKeyOf, link, nodeUrl } from "./links";
+import type { NodeLink } from "./links";
 import { SchemaError } from "./errors";
 import { read, readUsage } from "./read";
 import type { Snapshot, UsageSnapshot } from "@atropical/liblib-core/types";
@@ -40,7 +42,11 @@ const HELP = `liblib — read a LibLib Figma snapshot without parsing it by hand
 
 Usage
   liblib info <file>                          what this file is, and what is in it
-  liblib frames <file>                        every exported frame
+  liblib frames <file> [--file-url <link>]    every exported frame, with its Figma link
+  liblib link <file> <ref> [--file-url <link>]
+                                              file key, node id and URL for a frame,
+                                              component, variant or node id — what
+                                              Figma MCP get_screenshot takes
   liblib components <file> [--limit N]        library components used, most-used first
   liblib tree <file> <frame> [--depth N] [--hidden]
                                               one frame's layers, flat, with full paths
@@ -54,6 +60,7 @@ Usage
 Options
   --json          print the structured value instead of text, for piping
   --limit N       cap the rows shown; the last line always says what was cut
+  --file-url L    this file's Figma link, for exports without a file key
   -h, --help      this text
   -V, --version   package version
 
@@ -70,6 +77,7 @@ interface Flags {
   limit?: number;
   in?: string;
   dir?: string;
+  fileUrl?: string;
 }
 
 const FLAG_SPEC: Record<string, "boolean" | "value"> = {
@@ -81,7 +89,12 @@ const FLAG_SPEC: Record<string, "boolean" | "value"> = {
   "--limit": "value",
   "--in": "value",
   "--dir": "value",
+  "--file-url": "value",
 };
+
+/** Above `main()`: the CLI runs as the module loads, before later constants exist. */
+const NO_KEY_LINE =
+  "no file key in this export — ask the user for the file's Figma link and pass it as --file-url";
 
 main();
 
@@ -122,7 +135,10 @@ function run(command: string, rest: string[]): void {
 
     case "frames": {
       const usage = usageFrom(args, 0, "frames");
-      const rows = frames(usage);
+      const fileKey = fileKeyOf(usage, { fileUrl: flags.fileUrl });
+      const rows = frames(usage).map((frame) =>
+        fileKey ? { ...frame, url: nodeUrl(fileKey, frame.nodeId, usage.meta?.fileName) } : frame,
+      );
       const shown = capped(rows, flags.limit);
       return out(
         rows,
@@ -132,9 +148,21 @@ function run(command: string, rest: string[]): void {
             `${frame.size[0]}x${frame.size[1]}`,
             plural(frame.layers, "layer"),
             frame.nodeId,
+            ...("url" in frame ? [frame.url] : []),
           ]),
-        ).concat(count(shown.length, rows.length, "frames", flags.limit !== undefined)),
+        )
+          .concat(count(shown.length, rows.length, "frames", flags.limit !== undefined))
+          .concat(fileKey ? [] : [NO_KEY_LINE]),
       );
+    }
+
+    case "link": {
+      if (args[1] === undefined) {
+        throw new CliError("link needs a frame, component or node id: `liblib link <file> <ref>`.");
+      }
+      const result = read(source(args, 0, "link"), { fileName: args[0] });
+      const target = link(result.data as Snapshot | UsageSnapshot, args[1], { fileUrl: flags.fileUrl });
+      return out(target, linkLines(target));
     }
 
     case "components": {
@@ -256,6 +284,18 @@ function run(command: string, rest: string[]): void {
 }
 
 /* ── output ─────────────────────────────────────────────────────────── */
+
+function linkLines(target: NodeLink): string[] {
+  const rows = [
+    [target.kind, target.name],
+    ["nodeId", target.nodeId],
+  ];
+  if (!target.fileKey) return table(rows).concat(NO_KEY_LINE);
+  rows.push(["fileKey", target.fileKey], ["url", target.url ?? ""]);
+  return table(rows).concat(
+    `Figma MCP: get_screenshot { fileKey: "${target.fileKey}", nodeId: "${target.nodeId}" }`,
+  );
+}
 
 function emit(json: boolean, value: unknown, lines: string[]): void {
   const text = json ? JSON.stringify(value, null, 2) : lines.filter((line) => line !== "").join("\n");
@@ -557,6 +597,7 @@ function parse(argv: string[]): { args: string[]; flags: Flags } {
     if (name === "--limit") flags.limit = whole(name, value);
     if (name === "--in") flags.in = value;
     if (name === "--dir") flags.dir = value;
+    if (name === "--file-url") flags.fileUrl = value;
   }
 
   return { args, flags };

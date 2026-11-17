@@ -38,7 +38,7 @@
 
 ### Checkout / Order Summary
 
-- Node: [`10:1`](https://www.figma.com/design/abc123/Acme-Checkout?node-id=10%3A1&m=dev)
+- Node: [`10:1`](https://www.figma.com/design/abc123/Acme-Checkout?node-id=10-1&m=dev)
 - Size: 1440 × 900
 - Hash: `ad0779833c2f680d`
 
@@ -54,7 +54,7 @@ FRAME "Order Summary" #10:1
 
 ### Checkout / Receipt
 
-- Node: [`20:1`](https://www.figma.com/design/abc123/Acme-Checkout?node-id=20%3A1&m=dev)
+- Node: [`20:1`](https://www.figma.com/design/abc123/Acme-Checkout?node-id=20-1&m=dev)
 - Size: 1440 × 640
 - Hash: `9fd547131bdad735`
 

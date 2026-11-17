@@ -1,4 +1,6 @@
 /// <reference types="@figma/plugin-typings" />
+import { fileKeyMeta } from "./fileLink";
+import { countWeights, MAX_ESTIMATED_DEFINITIONS, startProbe } from "./probeControl";
 
 import {
   ComponentPropertyRecord,
@@ -75,20 +77,27 @@ export async function probeSnapshot(
   options: SnapshotOptions = DEFAULT_OPTIONS,
   sampleSize = 24,
 ): Promise<ProbeResult> {
+  const ticket = startProbe();
   const overheadStart = Date.now();
   await figma.loadAllPagesAsync();
+  await ticket.checkpoint();
 
   const roots = componentRoots();
   const probeCtx = createContext({ depth: options.depth, includeSizes: options.includeSizes });
-  const styles = options.includeStyles ? await collectStyles(probeCtx) : [];
-  const { collections, variables } = options.includeVariables
-    ? await collectVariables()
-    : { collections: [], variables: [] };
+  const allStyles = options.includeStyles ? await collectStyles(probeCtx) : [];
+  await ticket.checkpoint();
+  const all = options.includeVariables ? await collectVariables() : { collections: [], variables: [] };
+  await ticket.checkpoint();
+  const styles = allStyles.slice(0, MAX_ESTIMATED_DEFINITIONS);
+  const variables = all.variables.slice(0, MAX_ESTIMATED_DEFINITIONS);
+  const definitions = allStyles.length + all.variables.length;
+  const definitionScale = definitions > 0 ? definitions / (styles.length + variables.length) : 1;
 
   // Counting nodes only reads `children`, no properties, so it is far cheaper
-  // than serializing — cheap enough to do for every component in the file.
-  const weights = roots.map((root) => countCost(root, options.depth));
-  const totalNodes = weights.reduce((sum, weight) => sum + weight, 0);
+  // than serializing — cheap enough to do for every component in a normal
+  // file, and for an evenly spread subset of a huge one.
+  const counted = await countWeights(roots, (root) => countCost(root, options.depth), ticket);
+  const { weights, totalNodes } = counted;
   const overheadMs = Date.now() - overheadStart;
 
   const picks = stratifiedPicks(weights, sampleSize);
@@ -101,23 +110,27 @@ export async function probeSnapshot(
   const groups: ProbeGroup[] = [];
   for (const indices of [bySize.slice(0, half), bySize.slice(half)]) {
     if (indices.length === 0) continue;
+    await ticket.checkpoint();
     const start = Date.now();
-    const records = await collectComponents(indices.map((index) => roots[index]), ctx);
+    const records = await collectComponents(indices.map((index) => roots[counted.indices[index]]), ctx);
     groups.push({
-      snapshot: assemble(records, styles, collections, variables),
+      snapshot: assemble(records, styles, all.collections, variables),
       componentCount: indices.length,
       nodes: indices.reduce((sum, index) => sum + weights[index], 0),
       millis: Date.now() - start,
     });
   }
+  await ticket.checkpoint();
 
   return {
     componentCount: roots.length,
     sampleSize: picks.length,
     totalNodes,
+    approximate: counted.approximate,
+    definitionScale,
     groups,
     overheadMs,
-    base: assemble([], styles, collections, variables),
+    base: assemble([], styles, all.collections, variables),
   };
 }
 
@@ -180,7 +193,7 @@ function assemble(
       generatedAt: new Date().toISOString(),
       pluginVersion: PLUGIN_VERSION,
       fileName: figma.root.name,
-      fileKey: figma.fileKey,
+      ...fileKeyMeta(),
       readWith: READ_WITH,
       counts: {
         components: components.filter((c) => c.type === "COMPONENT").length,

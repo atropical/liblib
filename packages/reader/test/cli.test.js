@@ -96,7 +96,10 @@ test("frames lists every frame, one line each, and counts them", () => {
   assert.equal(frames.status, 0);
   const lines = frames.stdout.trimEnd().split("\n");
   assert.equal(lines.length, 3);
-  assert.match(lines[0], /^Checkout \/ Order Summary\s+1440x900\s+6 layers\s+10:1$/);
+  assert.match(
+    lines[0],
+    /^Checkout \/ Order Summary\s+1440x900\s+6 layers\s+10:1\s+https:\/\/www\.figma\.com\/design\/abc123\/Acme-Checkout\?node-id=10-1&m=dev$/,
+  );
   assert.equal(lastLine(frames.stdout), "2 of 2 frames");
 });
 
@@ -339,4 +342,44 @@ test("init-skill creates the directories it needs under a fresh cwd", () => {
     readFileSync(resolve(dir, ".claude/skills/liblib/SKILL.md"), "utf8"),
     readFileSync(resolve(here, "../SKILL.md"), "utf8"),
   );
+});
+
+test("link prints what Figma MCP get_screenshot takes for a frame", () => {
+  const result = run("link", usage, "Order Summary");
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /^frame\s+Checkout \/ Order Summary$/m);
+  assert.match(result.stdout, /^nodeId\s+10:1$/m);
+  assert.match(result.stdout, /^fileKey\s+abc123$/m);
+  assert.equal(lastLine(result.stdout), 'Figma MCP: get_screenshot { fileKey: "abc123", nodeId: "10:1" }');
+});
+
+test("link takes a bare layer id from tree or find", () => {
+  const result = run("link", usage, "10:2", "--json");
+  assert.equal(result.status, 0);
+  const value = JSON.parse(result.stdout);
+  assert.equal(value.kind, "node");
+  assert.equal(value.url, "https://www.figma.com/design/abc123/Acme-Checkout?node-id=10-2&m=dev");
+});
+
+test("link without a file key says what to ask for, and --file-url supplies it", () => {
+  const bare = run("link", library, "Button / Primary");
+  assert.equal(bare.status, 0);
+  assert.match(bare.stdout, /^nodeId\s+1:1$/m);
+  assert.match(lastLine(bare.stdout), /no file key.*--file-url/);
+
+  const url = "https://www.figma.com/design/LIB123/Acme-DS?node-id=0-1";
+  const variant = run("link", library, "Button / Primary / Size=Large, State=Default", "--file-url", url, "--json");
+  assert.equal(variant.status, 0);
+  const value = JSON.parse(variant.stdout);
+  assert.deepEqual(
+    [value.kind, value.nodeId, value.fileKey],
+    ["variant", "1:2", "LIB123"],
+  );
+});
+
+test("link refuses a --file-url that is not a Figma link, without a stack", () => {
+  const result = run("link", usage, "Order Summary", "--file-url", "https://example.com/x");
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /is not a Figma file link/);
+  assert.doesNotMatch(result.stderr, /at .*\.js/);
 });
