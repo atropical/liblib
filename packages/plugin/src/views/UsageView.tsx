@@ -41,7 +41,11 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
     <PluginDialogShell
       scrollKey={usage ? "result" : "setup"}
       action={
-        usage ? undefined : (
+        usage ? (
+          <Button variant="secondary" onClick={reset} style={{ width: "100%" }}>
+            Scan again
+          </Button>
+        ) : (
           <ScanAction
             label="Scan frames"
             building={building}
@@ -54,9 +58,6 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
       header={
         usage ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">
-            <Button variant="secondary" onClick={reset}>
-              ← Scan again
-            </Button>
             <Text weight="strong">{usage.meta.fileName}</Text>
           </Flex>
         ) : (
@@ -109,8 +110,8 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
             }
             scan={
               <>
-                <EstimatePanel probe={probe} probing={probing} unit="frames" paused={building} />
                 <FileLinkField disabled={building} />
+                <EstimatePanel probe={probe} probing={probing} unit="frames" paused={building} />
                 {error && <ErrorNotice error={error} context="Usage scan" editorType={editorType} />}
               </>
             }

@@ -65,7 +65,11 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
   return (
     <PluginDialogShell
       action={
-        report ? undefined : (
+        report ? (
+          <Button variant="secondary" onClick={reset} style={{ width: "100%" }}>
+            Compare again
+          </Button>
+        ) : (
           <ScanAction
             label="Scan and compare"
             building={building}
@@ -80,9 +84,6 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
         report ? (
           <Flex direction="column" gap="1">
             <Flex direction="row" gap="3" align="center" wrap="wrap">
-              <Button variant="secondary" onClick={reset}>
-                ← Compare again
-              </Button>
               <Text weight="strong">
                 {report.summary.added} added · {report.summary.removed} removed ·{" "}
                 {report.summary.renamed} renamed · {report.summary.modified} modified
@@ -158,8 +159,8 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
             }
             scan={
               <>
-                <EstimatePanel probe={probe} probing={probing} unit="frames" paused={building} />
                 <FileLinkField disabled={building} />
+                <EstimatePanel probe={probe} probing={probing} unit="frames" paused={building} />
                 {error && <ErrorNotice error={error} context="Usage diff" editorType={editorType} />}
               </>
             }

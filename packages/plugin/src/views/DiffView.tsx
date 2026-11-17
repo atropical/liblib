@@ -65,7 +65,11 @@ export const DiffView: React.FC<DiffViewProps> = ({ editorType }) => {
   return (
     <PluginDialogShell
       action={
-        report ? undefined : (
+        report ? (
+          <Button variant="secondary" onClick={reset} style={{ width: "100%" }}>
+            Compare again
+          </Button>
+        ) : (
           <ScanAction
             label="Scan and compare"
             building={building}
@@ -79,9 +83,6 @@ export const DiffView: React.FC<DiffViewProps> = ({ editorType }) => {
       header={
         report ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">
-            <Button variant="secondary" onClick={reset}>
-              ← Compare again
-            </Button>
             <Text weight="strong">
               {report.summary.added} added · {report.summary.removed} removed · {report.summary.renamed}{" "}
               renamed · {report.summary.modified} modified
@@ -140,8 +141,8 @@ export const DiffView: React.FC<DiffViewProps> = ({ editorType }) => {
             }
             scan={
               <>
-                <EstimatePanel probe={probe} probing={probing} paused={building} />
                 <FileLinkField disabled={building} />
+                <EstimatePanel probe={probe} probing={probing} paused={building} />
                 {error && <ErrorNotice error={error} context="Diff" editorType={editorType} />}
               </>
             }

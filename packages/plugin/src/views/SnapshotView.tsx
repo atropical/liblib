@@ -39,16 +39,17 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({ editorType }) => {
     <PluginDialogShell
       scrollKey={snapshot ? "result" : "setup"}
       action={
-        snapshot ? undefined : (
+        snapshot ? (
+          <Button variant="secondary" onClick={reset} style={{ width: "100%" }}>
+            Scan again
+          </Button>
+        ) : (
           <ScanAction label="Scan file" building={building} progress={progress} onScan={() => build(options)} />
         )
       }
       header={
         snapshot ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">
-            <Button variant="secondary" onClick={reset}>
-              ← Scan again
-            </Button>
             <Text weight="strong">{snapshot.meta.fileName}</Text>
           </Flex>
         ) : (
@@ -93,8 +94,8 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({ editorType }) => {
             options={<OptionsPanel options={options} onChange={setOptions} disabled={building} />}
             scan={
               <>
-                <EstimatePanel probe={probe} probing={probing} paused={building} />
                 <FileLinkField disabled={building} />
+                <EstimatePanel probe={probe} probing={probing} paused={building} />
                 {error && <ErrorNotice error={error} context="Snapshot" editorType={editorType} />}
               </>
             }

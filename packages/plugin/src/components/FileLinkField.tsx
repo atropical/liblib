@@ -4,6 +4,18 @@ import { FileLinkState, MessageTypes, PluginMessage } from "@atropical/liblib-co
 
 const secondary = { color: "var(--figma-color-text-secondary)" };
 
+/** Figma's "Copy link". With a layer selected it links to the layer — same file key, so that is fine. */
+const SHORTCUT = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘L" : "Ctrl+L";
+
+const kbd: React.CSSProperties = {
+  fontFamily: "inherit",
+  fontWeight: 600,
+  padding: "0 4px",
+  borderRadius: 3,
+  border: "1px solid var(--figma-color-border)",
+  background: "var(--figma-color-bg)",
+};
+
 /**
  * Asks for this file's link when Figma will not say which file the plugin is
  * running in — which is always, for a Community plugin. Without it an export
@@ -53,13 +65,21 @@ export const FileLinkField: React.FC<{ disabled?: boolean }> = ({ disabled }) =>
   }
 
   return (
-    <Flex direction="column" gap="1">
-      <Text size="small" weight="strong">
-        This file's link
-      </Text>
-      <Text size="small" style={secondary}>
-        Figma doesn't tell plugins which file they're in. Paste this file's link once so agents can open
-        the frames you export. It's saved in the file. Optional.
+    <Flex
+      direction="column"
+      gap="2"
+      style={{
+        border: "1px solid var(--figma-color-border-brand-strong)",
+        background: "var(--figma-color-bg-brand-tertiary)",
+        borderRadius: 6,
+        padding: 10,
+      }}
+    >
+      <Text weight="strong">Paste this file's link first</Text>
+      <Text size="small">
+        Click the canvas, press <kbd style={kbd}>{SHORTCUT}</kbd> to copy the link, then paste it here. Figma doesn't tell
+        plugins which file they're in, so without the link agents can't open or screenshot what you export.
+        It's saved in this file, so you're only asked once.
       </Text>
       <Flex direction="row" gap="2" align="center">
         <Input
@@ -72,7 +92,7 @@ export const FileLinkField: React.FC<{ disabled?: boolean }> = ({ disabled }) =>
           }}
           style={{ flex: 1 }}
         />
-        <Button variant="secondary" onClick={() => save(draft)} disabled={disabled || !draft.trim()}>
+        <Button variant="primary" onClick={() => save(draft)} disabled={disabled || !draft.trim()}>
           Save
         </Button>
         {editing && (
@@ -81,7 +101,11 @@ export const FileLinkField: React.FC<{ disabled?: boolean }> = ({ disabled }) =>
           </Button>
         )}
       </Flex>
-      {state.error && <Text size="small" style={secondary}>{state.error}</Text>}
+      {state.error && (
+        <Text size="small" style={{ color: "var(--figma-color-text-danger)" }}>
+          {state.error}
+        </Text>
+      )}
     </Flex>
   );
 };
