@@ -73,6 +73,8 @@ export function useUsage() {
   }, []);
 
   const build = useCallback((usageOptions: UsageOptions) => {
+    // The plugin thread abandons the estimate when the scan arrives; stop showing it.
+    setProbing(false);
     setState({ usage: null, building: true, progress: null, error: null });
     parent.postMessage({ pluginMessage: { type: MessageTypes.BUILD_USAGE, usageOptions } }, "*");
   }, []);

@@ -11,6 +11,8 @@ export interface ScanEstimate {
   componentCount: number;
   sampleSize: number;
   totalNodes: number;
+  /** Node count scaled up from a subset, because the file is huge. */
+  approximate: boolean;
   /** Predicted wall-clock for a full scan, including the fixed overhead. */
   millis: number;
   perFormat: Record<OutputFormats, FormatEstimate>;
@@ -30,34 +32,60 @@ export interface ScanEstimate {
  * is measured directly from a component-free encode, so it is never fitted.
  */
 export function estimateScan(probe: ProbeResult): ScanEstimate {
-  const { componentCount, sampleSize, totalNodes, groups, overheadMs } = probe;
+  const perFormat = {} as Record<OutputFormats, FormatEstimate>;
+  for (const descriptor of FORMATS) perFormat[descriptor.format] = estimateFormat(probe, descriptor.format);
+  return assembleEstimate(probe, perFormat);
+}
 
+/**
+ * The same estimate, one format per task, so the panel stays clickable while
+ * it is worked out. Encoding the sample three ways is the expensive part, and
+ * on a big library it held the UI thread long enough to swallow the click on
+ * Scan. Resolves `null` as soon as `cancelled()` says the answer is unwanted.
+ */
+export async function estimateScanStepwise(
+  probe: ProbeResult,
+  cancelled: () => boolean,
+): Promise<ScanEstimate | null> {
   const perFormat = {} as Record<OutputFormats, FormatEstimate>;
   for (const descriptor of FORMATS) {
-    const baseText = encodeAny(probe.base, descriptor.format);
-    const baseTokens = estimateTokens(baseText);
-    const baseBytes = baseText.length;
-
-    const measured = groups.map((group) => {
-      const text = encodeAny(group.snapshot, descriptor.format);
-      return {
-        components: group.componentCount,
-        nodes: group.nodes,
-        tokens: Math.max(0, estimateTokens(text) - baseTokens),
-        bytes: Math.max(0, text.length - baseBytes),
-      };
-    });
-
-    perFormat[descriptor.format] = {
-      tokens: Math.round(
-        baseTokens + fit(measured.map((m) => [m.components, m.nodes, m.tokens]), componentCount, totalNodes),
-      ),
-      bytes: Math.round(
-        baseBytes + fit(measured.map((m) => [m.components, m.nodes, m.bytes]), componentCount, totalNodes),
-      ),
-    };
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (cancelled()) return null;
+    perFormat[descriptor.format] = estimateFormat(probe, descriptor.format);
   }
+  return cancelled() ? null : assembleEstimate(probe, perFormat);
+}
 
+function estimateFormat(probe: ProbeResult, format: OutputFormats): FormatEstimate {
+  const { componentCount, totalNodes, groups } = probe;
+  // The probe sends only a slice of the styles and variables; scale them back up.
+  const scale = probe.definitionScale ?? 1;
+  const baseText = encodeAny(probe.base, format);
+  const sliceTokens = estimateTokens(baseText);
+  const sliceBytes = baseText.length;
+
+  const measured = groups.map((group) => {
+    const text = encodeAny(group.snapshot, format);
+    return {
+      components: group.componentCount,
+      nodes: group.nodes,
+      tokens: Math.max(0, estimateTokens(text) - sliceTokens),
+      bytes: Math.max(0, text.length - sliceBytes),
+    };
+  });
+
+  return {
+    tokens: Math.round(
+      sliceTokens * scale + fit(measured.map((m) => [m.components, m.nodes, m.tokens]), componentCount, totalNodes),
+    ),
+    bytes: Math.round(
+      sliceBytes * scale + fit(measured.map((m) => [m.components, m.nodes, m.bytes]), componentCount, totalNodes),
+    ),
+  };
+}
+
+function assembleEstimate(probe: ProbeResult, perFormat: Record<OutputFormats, FormatEstimate>): ScanEstimate {
+  const { componentCount, sampleSize, totalNodes, groups, overheadMs } = probe;
   const timing = groups.map((group): [number, number, number] => [
     group.componentCount,
     group.nodes,
@@ -68,6 +96,7 @@ export function estimateScan(probe: ProbeResult): ScanEstimate {
     componentCount,
     sampleSize,
     totalNodes,
+    approximate: probe.approximate ?? false,
     millis: overheadMs + fit(timing, componentCount, totalNodes),
     perFormat,
   };

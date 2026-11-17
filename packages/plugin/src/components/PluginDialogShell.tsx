@@ -14,6 +14,11 @@ interface PluginDialogShellProps {
    * the scroll position from the previous step is never the right one to keep.
    */
   scrollKey?: string;
+  /**
+   * Pinned under the scrolling content, so the primary button is always in
+   * view however many options sit above it.
+   */
+  action?: React.ReactNode;
 }
 
 export const PluginDialogShell: React.FC<PluginDialogShellProps> = ({
@@ -21,6 +26,7 @@ export const PluginDialogShell: React.FC<PluginDialogShellProps> = ({
   header,
   showFooter = true,
   scrollKey,
+  action,
 }) => {
   const scroller = React.useRef<HTMLDivElement>(null);
 
@@ -29,6 +35,7 @@ export const PluginDialogShell: React.FC<PluginDialogShellProps> = ({
   }, [scrollKey]);
 
   return (
+  <Flex direction="column" style={{ height: "100%", minHeight: 0 }}>
   <Flex
     ref={scroller}
     direction="column"
@@ -54,6 +61,21 @@ export const PluginDialogShell: React.FC<PluginDialogShellProps> = ({
       {children}
     </Flex>
     {showFooter && <Footer />}
+  </Flex>
+    {action && (
+      <Flex
+        direction="column"
+        gap="2"
+        style={{
+          flex: "0 0 auto",
+          padding: "0.75rem 1rem",
+          borderTop: "1px solid var(--figma-color-border)",
+          background: "var(--figma-color-bg)",
+        }}
+      >
+        {action}
+      </Flex>
+    )}
   </Flex>
   );
 };

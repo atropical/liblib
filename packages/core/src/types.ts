@@ -199,6 +199,13 @@ export interface ProbeResult {
    * assuming everything scales the same way.
    */
   groups: ProbeGroup[];
+  /** True when `totalNodes` was scaled up from an evenly spread subset of a huge file. */
+  approximate?: boolean;
+  /**
+   * The probe carries only a slice of the file's styles and variables, so the
+   * UI never encodes thousands of them; this scales `base` back up.
+   */
+  definitionScale?: number;
   /** Fixed cost already paid: loading pages, styles and variables. */
   overheadMs: number;
   /** The snapshot with no components, isolating the fixed part of the output. */

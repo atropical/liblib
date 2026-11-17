@@ -5,6 +5,9 @@ import { ExportLayout } from "../components/ExportLayout";
 import { FormatSelector } from "../components/FormatSelector";
 import { UsageOptionsPanel } from "../components/UsageOptionsPanel";
 import { EstimatePanel } from "../components/EstimatePanel";
+import { FileLinkField } from "../components/FileLinkField";
+import { SetupLayout } from "../components/SetupLayout";
+import { ScanAction } from "../components/ScanAction";
 import { DiffEntryList } from "../components/DiffEntryList";
 import { OutputPreview } from "../components/OutputPreview";
 import { useAutoUsageProbe, useUsage } from "../hooks/useUsage";
@@ -61,6 +64,17 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
 
   return (
     <PluginDialogShell
+      action={
+        report ? undefined : (
+          <ScanAction
+            label="Scan and compare"
+            building={building}
+            progress={progress}
+            disabled={!base || selection?.frames.length === 0}
+            onScan={() => build(options)}
+          />
+        )
+      }
       scrollKey={report ? "result" : "setup"}
       header={
         report ? (
@@ -117,7 +131,10 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
             <DiffEntryList entries={entries} />
           </>
         ) : (
-          <>
+          <SetupLayout
+            editorType={editorType}
+            options={
+              <>
             <Flex direction="column" gap="2">
               <Button onClick={() => fileInput.current?.click()} style={{ width: "100%" }}>
                 Load base usage snapshot…
@@ -137,24 +154,16 @@ export const UsageDiffView: React.FC<UsageDiffViewProps> = ({ editorType }) => {
               disabled={building}
             />
 
-            <EstimatePanel probe={probe} probing={probing} unit="frames" />
-
-            <Button
-              variant="primary"
-              onClick={() => build(options)}
-              disabled={building || !base || selection?.frames.length === 0}
-              style={{ width: "100%" }}
-            >
-              {building ? "Scanning…" : "Scan and compare"}
-            </Button>
-
-            {building && progress && (
-              <Text size="small" style={{ color: "var(--figma-color-text-secondary)" }}>
-                {progress.stage}: {progress.scanned}/{progress.total}
-              </Text>
-            )}
-            {error && <ErrorNotice error={error} context="Usage diff" editorType={editorType} />}
-          </>
+              </>
+            }
+            scan={
+              <>
+                <EstimatePanel probe={probe} probing={probing} unit="frames" paused={building} />
+                <FileLinkField disabled={building} />
+                {error && <ErrorNotice error={error} context="Usage diff" editorType={editorType} />}
+              </>
+            }
+          />
         )}
 
         <input

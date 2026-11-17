@@ -15,6 +15,8 @@ import { UsageOptions } from "@atropical/liblib-core/types";
 import { mimeFor } from "./SnapshotView";
 import { ErrorNotice } from "../components/ErrorNotice";
 import { FileLinkField } from "../components/FileLinkField";
+import { SetupLayout } from "../components/SetupLayout";
+import { ScanAction } from "../components/ScanAction";
 
 interface UsageViewProps {
   editorType?: string;
@@ -38,6 +40,17 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
   return (
     <PluginDialogShell
       scrollKey={usage ? "result" : "setup"}
+      action={
+        usage ? undefined : (
+          <ScanAction
+            label="Scan frames"
+            building={building}
+            progress={progress}
+            disabled={selection?.frames.length === 0}
+            onScan={() => build(options)}
+          />
+        )
+      }
       header={
         usage ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">
@@ -84,34 +97,24 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
             <FormatSelector value={format} onChange={setFormat} tokens={tokens} />
           </>
         ) : (
-          <>
-            <UsageOptionsPanel
-              options={options}
-              onChange={setOptions}
-              selection={selection}
-              disabled={building}
-            />
-
-            <EstimatePanel probe={probe} probing={probing} unit="frames" />
-
-            <FileLinkField disabled={building} />
-
-            <Button
-              variant="primary"
-              onClick={() => build(options)}
-              disabled={building || selection?.frames.length === 0}
-              style={{ width: "100%" }}
-            >
-              {building ? "Scanning…" : "Scan frames"}
-            </Button>
-
-            {building && progress && (
-              <Text size="small" style={{ color: "var(--figma-color-text-secondary)" }}>
-                {progress.stage}: {progress.scanned}/{progress.total}
-              </Text>
-            )}
-            {error && <ErrorNotice error={error} context="Usage scan" editorType={editorType} />}
-          </>
+          <SetupLayout
+            editorType={editorType}
+            options={
+              <UsageOptionsPanel
+                options={options}
+                onChange={setOptions}
+                selection={selection}
+                disabled={building}
+              />
+            }
+            scan={
+              <>
+                <EstimatePanel probe={probe} probing={probing} unit="frames" paused={building} />
+                <FileLinkField disabled={building} />
+                {error && <ErrorNotice error={error} context="Usage scan" editorType={editorType} />}
+              </>
+            }
+          />
         )}
       </ExportLayout>
     </PluginDialogShell>

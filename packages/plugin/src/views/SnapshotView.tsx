@@ -14,6 +14,8 @@ import { downloadText, slugify } from "../utils/download";
 import { SnapshotOptions } from "@atropical/liblib-core/types";
 import { ErrorNotice } from "../components/ErrorNotice";
 import { FileLinkField } from "../components/FileLinkField";
+import { SetupLayout } from "../components/SetupLayout";
+import { ScanAction } from "../components/ScanAction";
 
 interface SnapshotViewProps {
   editorType?: string;
@@ -36,6 +38,11 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({ editorType }) => {
   return (
     <PluginDialogShell
       scrollKey={snapshot ? "result" : "setup"}
+      action={
+        snapshot ? undefined : (
+          <ScanAction label="Scan file" building={building} progress={progress} onScan={() => build(options)} />
+        )
+      }
       header={
         snapshot ? (
           <Flex direction="row" gap="3" align="center" wrap="wrap">
@@ -81,29 +88,17 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({ editorType }) => {
             <FormatSelector value={format} onChange={setFormat} tokens={tokens} />
           </>
         ) : (
-          <>
-            <OptionsPanel options={options} onChange={setOptions} disabled={building} />
-
-            <EstimatePanel probe={probe} probing={probing} />
-
-            <FileLinkField disabled={building} />
-
-            <Button
-              variant="primary"
-              onClick={() => build(options)}
-              disabled={building}
-              style={{ width: "100%" }}
-            >
-              {building ? "Scanning…" : "Scan file"}
-            </Button>
-
-            {building && progress && (
-              <Text size="small" style={{ color: "var(--figma-color-text-secondary)" }}>
-                {progress.stage}: {progress.scanned}/{progress.total}
-              </Text>
-            )}
-            {error && <ErrorNotice error={error} context="Snapshot" editorType={editorType} />}
-          </>
+          <SetupLayout
+            editorType={editorType}
+            options={<OptionsPanel options={options} onChange={setOptions} disabled={building} />}
+            scan={
+              <>
+                <EstimatePanel probe={probe} probing={probing} paused={building} />
+                <FileLinkField disabled={building} />
+                {error && <ErrorNotice error={error} context="Snapshot" editorType={editorType} />}
+              </>
+            }
+          />
         )}
       </ExportLayout>
     </PluginDialogShell>
