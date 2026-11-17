@@ -14,6 +14,7 @@ import { downloadText, slugify } from "../utils/download";
 import { UsageOptions } from "@atropical/liblib-core/types";
 import { mimeFor } from "./SnapshotView";
 import { ErrorNotice } from "../components/ErrorNotice";
+import { FileLinkField } from "../components/FileLinkField";
 
 interface UsageViewProps {
   editorType?: string;
@@ -92,6 +93,8 @@ export const UsageView: React.FC<UsageViewProps> = ({ editorType }) => {
             />
 
             <EstimatePanel probe={probe} probing={probing} unit="frames" />
+
+            <FileLinkField disabled={building} />
 
             <Button
               variant="primary"

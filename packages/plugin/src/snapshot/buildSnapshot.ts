@@ -1,4 +1,5 @@
 /// <reference types="@figma/plugin-typings" />
+import { fileKeyMeta } from "./fileLink";
 
 import {
   ComponentPropertyRecord,
@@ -180,7 +181,7 @@ function assemble(
       generatedAt: new Date().toISOString(),
       pluginVersion: PLUGIN_VERSION,
       fileName: figma.root.name,
-      fileKey: figma.fileKey,
+      ...fileKeyMeta(),
       readWith: READ_WITH,
       counts: {
         components: components.filter((c) => c.type === "COMPONENT").length,

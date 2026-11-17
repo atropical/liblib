@@ -37,6 +37,9 @@ export type {
   TreeOptions,
 } from "./accessors";
 
+export { fileKeyOf, link, nodeUrl, parseFigmaUrl } from "./links";
+export type { FigmaLink, LinkOptions, NodeLink } from "./links";
+
 export { diff } from "./diff";
 export type { DiffInput } from "./diff";
 

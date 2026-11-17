@@ -106,6 +106,13 @@ export const FORMAT_CHANGES: FormatChange[] = [
       "The hash of every style that binds a variable changes once; against an older snapshot the diff skips " +
       "`bindings`, so those styles are not reported unless something else about them changed.",
   },
+  {
+    version: "2.4.0",
+    change:
+      "`meta` carries the file key whenever one is known — the plugin asks for the file's link once when Figma " +
+      "withholds it — and `viewWith`, saying how to open a node with Figma's MCP tools.",
+    consequence: "None: `meta` is not hashed or diffed, and files without either field still load.",
+  },
 ];
 
 export enum PluginCommands {
@@ -131,6 +138,24 @@ export enum MessageTypes {
   SELECTION_RESULT = "selection-result",
   /** The plugin thread had to patch a value the Figma API returned unexpectedly. */
   API_WARNING = "api-warning",
+  /** UI asks which file key exports will carry; answered with FILE_LINK_RESULT. */
+  REQUEST_FILE_LINK = "request-file-link",
+  /** UI hands over a pasted file link (`fileUrl`), or `""` to forget it. */
+  SET_FILE_LINK = "set-file-link",
+  FILE_LINK_RESULT = "file-link-result",
+}
+
+/**
+ * Where the file key exports carry comes from. `figma` is the API's own, which
+ * only private plugins get; `pasted` is the link the user gave for this file.
+ */
+export interface FileLinkState {
+  fileKey?: string;
+  source: "figma" | "pasted" | "none";
+  /** The link as pasted, so the UI can show what it is using. */
+  url?: string;
+  /** Set when a paste was refused, or could not be saved into the file. */
+  error?: string;
 }
 
 /**
@@ -297,8 +322,9 @@ export interface Snapshot {
     pluginVersion: string;
     fileName: string;
     /**
-     * File key, so a `nodeId` can be turned into a URL without a human pasting
-     * one. Absent when Figma withholds it (public plugins on some plans).
+     * The key Figma's MCP tools take with a `nodeId` (a branch key for a
+     * branch). Figma only gives it to private plugins, so a Community build
+     * writes the one the user pasted for this file; absent when neither exists.
      */
     fileKey?: string;
     /**
@@ -308,6 +334,11 @@ export interface Snapshot {
      * base.
      */
     readWith?: string;
+    /**
+     * How to see a node: which MCP tool to call and with what, or — when there
+     * is no `fileKey` — what to ask the user for. Added in 2.4.0.
+     */
+    viewWith?: string;
     counts: Record<string, number>;
   };
   components: ComponentRecord[];
@@ -390,6 +421,7 @@ export interface UsageSnapshot {
     generatedAt: string;
     pluginVersion: string;
     fileName: string;
+    /** See `Snapshot.meta.fileKey`. */
     fileKey?: string;
     /**
      * How to read this file, stated in the file itself. An agent that opens a
@@ -398,6 +430,11 @@ export interface UsageSnapshot {
      * base.
      */
     readWith?: string;
+    /**
+     * How to see a node: which MCP tool to call and with what, or — when there
+     * is no `fileKey` — what to ask the user for. Added in 2.4.0.
+     */
+    viewWith?: string;
     /**
      * How the frames were chosen, and which ones were exported. A diff compares
      * the intersection of two scopes, so a narrower export reads as
@@ -483,6 +520,9 @@ export interface PluginMessage {
   stage?: string;
   error?: string;
   apiWarnings?: ApiWarning[];
+  fileLink?: FileLinkState;
+  /** A pasted file link, sent with SET_FILE_LINK. */
+  fileUrl?: string;
 }
 
 export interface SnapshotOptions {

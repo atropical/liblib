@@ -2,6 +2,7 @@
 
 import { ApiWarning, MessageTypes, PluginCommands, PluginMessage, UsageScope } from "@atropical/liblib-core/types";
 import { buildSnapshot, DEFAULT_OPTIONS, probeSnapshot } from "./snapshot/buildSnapshot";
+import { fileLink, setFileLink } from "./snapshot/fileLink";
 import { buildUsage, DEFAULT_USAGE_OPTIONS, probeUsage, summariseSelection } from "./snapshot/buildUsage";
 
 figma.showUI(__html__, { width: 640, height: 640, themeColors: true });
@@ -80,6 +81,12 @@ function reportError(error: unknown, fallback: string): void {
 }
 
 figma.ui.onmessage = async (msg: PluginMessage) => {
+  if (msg.type === MessageTypes.REQUEST_FILE_LINK || msg.type === MessageTypes.SET_FILE_LINK) {
+    const state = msg.type === MessageTypes.SET_FILE_LINK ? setFileLink(msg.fileUrl ?? "") : fileLink();
+    postToUI({ type: MessageTypes.FILE_LINK_RESULT, fileLink: state } as PluginMessage);
+    return;
+  }
+
   if (msg.type === MessageTypes.REQUEST_SELECTION) {
     watchedScope = msg.usageOptions?.scope ?? "selection";
     await postSelection(watchedScope);

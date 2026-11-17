@@ -44,7 +44,11 @@ liblib info checkout.toon
 # kind, schema, source file, scope, and the counts. Run this first.
 
 liblib frames checkout.toon
-# Checkout / Order Summary  1440x900  6 layers  10:1
+# Checkout / Order Summary  1440x900  6 layers  10:1  https://www.figma.com/design/…?node-id=10-1&m=dev
+
+liblib link checkout.toon "Order Summary"
+# fileKey, nodeId and URL, and the exact Figma MCP get_screenshot call to make. Takes a frame,
+# a component or variant (in a library snapshot), or any node id from tree/find/deviations.
 
 liblib tree checkout.toon "Order Summary" --depth 4
 # one line per layer, indented, with node id, text, and `-> Component / Variant`
@@ -67,6 +71,11 @@ liblib diff before.toon after.toon
 Paths are `Frame / Group / Layer` and mean the same thing in every command, so a path from
 `deviations` greps against `tree`. A frame is addressed by its key (`Page / Section / Frame`), or
 by name or node id when that is unambiguous. Node ids (`10:2`) are what the Figma MCP tools take.
+
+**To see a frame or component**, call Figma MCP `get_screenshot` with the `fileKey` and `nodeId`
+that `liblib link` prints. Don't guess a file key, and don't convert ids by hand: the MCP takes
+`10:2`, only URLs use `10-2`. If the export has no file key (the line says so), ask the user for
+the file's Figma link and pass it as `--file-url <link>` to `frames` or `link`.
 
 `liblib --help` has the full flag list. The same accessors are importable as a typed library —
 see the package README.

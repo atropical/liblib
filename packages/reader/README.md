@@ -35,7 +35,7 @@ mismatches(data);                    // every value that does not render as its 
 deviations(data);                    // where the design steps outside the library
 ```
 
-Also `read`, `readLibrary`, `components`, `counts`, `find`, `resolveFrame` and `diff`. `counts`
+Also `read`, `readLibrary`, `components`, `counts`, `find`, `resolveFrame`, `link` and `diff`. `link(data, ref, { fileUrl })` gives the `fileKey`, `nodeId` and URL that Figma's MCP tools take. `counts`
 gives the size of every one of those answers in a single walk, for when the number is the whole
 question. Every accessor takes
 the `data`, is pure, and returns records in a fixed order. Paths read `Frame / Group / Layer`
@@ -44,7 +44,7 @@ everywhere.
 ## CLI
 
 Run `liblib info <file>` first, then one command per question — `frames`, `components`, `tree`,
-`mismatches`, `deviations`, `find`, `diff`. One line per row, `--json` for the raw value, and every
+`mismatches`, `deviations`, `find`, `link`, `diff`. Exports without a file key take `--file-url <link>`. One line per row, `--json` for the raw value, and every
 list says what it showed against what exists. `liblib --help` has the rest.
 
 `liblib init-skill` installs `SKILL.md` into `.claude/skills/liblib/`, which tells an agent this

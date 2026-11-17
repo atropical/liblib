@@ -13,6 +13,7 @@ import { DEFAULT_FORMAT, encodeSnapshot, FORMATS, OutputFormats } from "@atropic
 import { downloadText, slugify } from "../utils/download";
 import { SnapshotOptions } from "@atropical/liblib-core/types";
 import { ErrorNotice } from "../components/ErrorNotice";
+import { FileLinkField } from "../components/FileLinkField";
 
 interface SnapshotViewProps {
   editorType?: string;
@@ -84,6 +85,8 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({ editorType }) => {
             <OptionsPanel options={options} onChange={setOptions} disabled={building} />
 
             <EstimatePanel probe={probe} probing={probing} />
+
+            <FileLinkField disabled={building} />
 
             <Button
               variant="primary"
